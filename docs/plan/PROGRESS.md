@@ -16,4 +16,5 @@ is filled in by the next commit.
 | G1-02 | done | 28520c2 | `ci: 5/5 gates passed` | `Lang` gets only its type and constants here; `AppendDigits` is G3-01 |
 | G1-03 | done | 51ce26b | `ci: 5/5 gates passed` | none |
 | G1-04 | done | 802535c | `ci: 5/5 gates passed` | `go build -gcflags=-m`: `serial.go:6:6: can inline toSerial`, `serial.go:13:6: can inline fromSerial` |
-| G1-05 | done | (next commit) | `ci: 5/5 gates passed` | Compare packs the fields into one uint32 and uses `cmp.Compare` (same result as field-by-field, inlines) |
+| G1-05 | done | 64167ee | `ci: 5/5 gates passed` | Compare packs the fields into one uint32 and uses `cmp.Compare` (same result as field-by-field, inlines) |
+| G1-06 | done | (next commit) | `ci: 5/5 gates passed` | The oracle reads `bs-calendar.json` itself (not the generated tables) and is checked against ALGORITHM §9 by `TestReferenceOracle` |

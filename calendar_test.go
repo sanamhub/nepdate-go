@@ -14,26 +14,15 @@ func TestCalendarTables(t *testing.T) {
 		t.Errorf("adMonthStart[0] = %d, want -101", got)
 	}
 	// AD 2144-01-01 is 109212 + (days from 2143-04-16 to 2144-01-01) = 109212 + 260.
-	if got, want := int(adMonthStart[3600]), daysFromCivilRef(2144, 1, 1)-epochUnixDays; got != want {
+	if got, want := int(adMonthStart[3600]), refDaysFromCivil(2144, 1, 1)-refEpochUnixDays; got != want {
 		t.Errorf("adMonthStart[3600] = %d, want %d", got, want)
+	}
+	if refEpochUnixDays != epochUnixDays || refToSerial(2199, 12, 30) != maxSerial {
+		t.Error("generated constants disagree with the reference")
 	}
 	if maxSerial != 109211 || minYear != 1901 || maxYear != 2199 || epochUnixDays != -45920 {
 		t.Error("calendar constants changed")
 	}
-}
-
-// daysFromCivilRef is ALGORITHM §5 days_from_civil, used here until reference_test.go (G1-06)
-// holds the full oracle.
-func daysFromCivilRef(y, m, d int) int {
-	if m <= 2 {
-		y--
-	}
-	era := y / 400
-	yoe := y - era*400
-	mp := (m + 9) % 12
-	doy := (153*mp+2)/5 + d - 1
-	doe := yoe*365 + yoe/4 - yoe/100 + doy
-	return era*146097 + doe - 719468
 }
 
 // TestEstimateConstants repeats the generator's check (ADR-0002 §3): for every serial the
