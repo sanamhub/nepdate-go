@@ -21,10 +21,7 @@ type csharpRow struct {
 	run  func(t *testing.T)
 }
 
-const (
-	pendingParse = "pending G3-04: needs Parse"
-	pendingToday = "pending G4-05: needs Today and FromTime"
-)
+const pendingToday = "pending G4-05: needs Today and FromTime"
 
 // csharpPhases lists the catalogue phases this package covers so far.
 var csharpPhases = []string{"1", "2"}
@@ -161,31 +158,31 @@ var csharpRows = []csharpRow{
 	{id: "NepaliDateConstructionTests.Constructor_InvalidNepaliDate_ThrowsException#2", run: newFails(2080, 13, 1, ErrInvalidMonth)},
 	{id: "NepaliDateConstructionTests.Constructor_InvalidNepaliDate_ThrowsException#3", run: newFails(2080, 1, 0, ErrInvalidDay)},
 	{id: "NepaliDateConstructionTests.Constructor_InvalidNepaliDate_ThrowsException#4", run: newFails(2080, 1, 33, ErrInvalidDay)},
-	{id: "NepaliDateConstructionTests.Constructor_ValidStringFormats_CreatesInstance#1", skip: pendingParse},
-	{id: "NepaliDateConstructionTests.Constructor_ValidStringFormats_CreatesInstance#2", skip: pendingParse},
-	{id: "NepaliDateConstructionTests.Constructor_ValidStringFormats_CreatesInstance#3", skip: pendingParse},
-	{id: "NepaliDateConstructionTests.Constructor_ValidStringFormats_CreatesInstance#4", skip: pendingParse},
-	{id: "NepaliDateConstructionTests.Constructor_ValidStringFormats_CreatesInstance#5", skip: pendingParse},
-	{id: "NepaliDateConstructionTests.Constructor_ValidStringFormats_CreatesInstance#6", skip: pendingParse},
+	{id: "NepaliDateConstructionTests.Constructor_ValidStringFormats_CreatesInstance#1", run: parsesTo("2080/05/15", nd(2080, 5, 15))},
+	{id: "NepaliDateConstructionTests.Constructor_ValidStringFormats_CreatesInstance#2", run: parsesTo("2080-05-15", nd(2080, 5, 15))},
+	{id: "NepaliDateConstructionTests.Constructor_ValidStringFormats_CreatesInstance#3", run: parsesTo("2080.05.15", nd(2080, 5, 15))},
+	{id: "NepaliDateConstructionTests.Constructor_ValidStringFormats_CreatesInstance#4", run: parsesTo("2080_05_15", nd(2080, 5, 15))},
+	{id: "NepaliDateConstructionTests.Constructor_ValidStringFormats_CreatesInstance#5", run: parsesTo(`2080\05\15`, nd(2080, 5, 15))},
+	{id: "NepaliDateConstructionTests.Constructor_ValidStringFormats_CreatesInstance#6", run: parsesTo("2080 05 15", nd(2080, 5, 15))},
 	{id: "NepaliDateConstructionTests.Constructor_AutoAdjustedFormats_CreatesInstance#1", skip: "D-06: autoAdjust guesses the field order"},
 	{id: "NepaliDateConstructionTests.Constructor_AutoAdjustedFormats_CreatesInstance#2", skip: "D-06: autoAdjust guesses the field order"},
-	{id: "NepaliDateConstructionTests.Constructor_AutoAdjustedFormats_CreatesInstance#3", skip: pendingParse},
+	{id: "NepaliDateConstructionTests.Constructor_AutoAdjustedFormats_CreatesInstance#3", run: parsesTo("2080/05/15", nd(2080, 5, 15))},
 	{id: "NepaliDateConstructionTests.Constructor_AutoAdjustedFormats_CreatesInstance#4", skip: "D-06: 2-digit years are not expanded"},
 	{id: "NepaliDateConstructionTests.Constructor_AutoAdjust_MonthOverflowWithBoundaryDay_SwapsAsDocumented#1", skip: "D-06: autoAdjust swaps month and day"},
 	{id: "NepaliDateConstructionTests.Constructor_AutoAdjust_MonthOverflowWithBoundaryDay_SwapsAsDocumented#2", skip: "D-06: autoAdjust swaps month and day"},
 	{id: "NepaliDateConstructionTests.TryParse_AutoAdjust_MonthOverflowWithBoundaryDay_SwapsAsDocumented", skip: "D-06: autoAdjust swaps month and day"},
-	{id: "NepaliDateConstructionTests.Constructor_InvalidStringFormats_ThrowsException#1", skip: pendingParse},
-	{id: "NepaliDateConstructionTests.Constructor_InvalidStringFormats_ThrowsException#2", skip: pendingParse},
-	{id: "NepaliDateConstructionTests.Constructor_InvalidStringFormats_ThrowsException#3", skip: pendingParse},
-	{id: "NepaliDateConstructionTests.Constructor_ValidFormatInvalidDate_ThrowsException#1", skip: pendingParse},
+	{id: "NepaliDateConstructionTests.Constructor_InvalidStringFormats_ThrowsException#1", run: parseFailsSyntax("")},
+	{id: "NepaliDateConstructionTests.Constructor_InvalidStringFormats_ThrowsException#2", run: parseFailsSyntax("invalid")},
+	{id: "NepaliDateConstructionTests.Constructor_InvalidStringFormats_ThrowsException#3", run: parseFailsSyntax("2080/5")},
+	{id: "NepaliDateConstructionTests.Constructor_ValidFormatInvalidDate_ThrowsException#1", run: parseFailsWith("2080/5/40", ErrInvalidDay)},
 	{id: "NepaliDateConstructionTests.Constructor_EnglishDate_ConvertsCorrectly", run: func(t *testing.T) {
 		d, err := FromGregorian(2023, time.August, 30)
 		check(t, err == nil && d == MustNew(2080, 5, 13), "AD 2023-08-30 is BS 2080-05-13")
 	}},
-	{id: "NepaliDateConstructionTests.TryParse_ValidString_ReturnsTrueWithCorrectDate", skip: pendingParse},
-	{id: "NepaliDateConstructionTests.TryParse_InvalidString_ReturnsFalseWithDefault#1", skip: pendingParse},
-	{id: "NepaliDateConstructionTests.TryParse_InvalidString_ReturnsFalseWithDefault#2", skip: pendingParse},
-	{id: "NepaliDateConstructionTests.TryParse_InvalidString_ReturnsFalseWithDefault#3", skip: pendingParse},
+	{id: "NepaliDateConstructionTests.TryParse_ValidString_ReturnsTrueWithCorrectDate", run: parsesTo("2080/05/15", nd(2080, 5, 15))},
+	{id: "NepaliDateConstructionTests.TryParse_InvalidString_ReturnsFalseWithDefault#1", run: parseFailsSyntax("")},
+	{id: "NepaliDateConstructionTests.TryParse_InvalidString_ReturnsFalseWithDefault#2", run: parseFailsSyntax("invalid")},
+	{id: "NepaliDateConstructionTests.TryParse_InvalidString_ReturnsFalseWithDefault#3", run: parseFailsSyntax("2080/5")},
 
 	// Core/NepaliDatePropertiesTests: the date is 2080-05-15 unless the row says otherwise.
 	{id: "NepaliDatePropertiesTests.EnglishDate_Conversion_ReturnsCorrectDate", run: func(t *testing.T) {
@@ -216,24 +213,24 @@ var csharpRows = []csharpRow{
 	{id: "NepaliDatePropertiesTests.Equals_DifferentType_ReturnsFalse", skip: "n/a: == on a Date only accepts a Date, so the Go compiler rejects other types"},
 
 	// Core/OptimizationVerificationTests, phase 1 rows
-	{id: "OptimizationVerificationTests.Constructor_AllSeparators_ParseCorrectly#1", skip: pendingParse},
-	{id: "OptimizationVerificationTests.Constructor_AllSeparators_ParseCorrectly#2", skip: pendingParse},
-	{id: "OptimizationVerificationTests.Constructor_AllSeparators_ParseCorrectly#3", skip: pendingParse},
-	{id: "OptimizationVerificationTests.Constructor_AllSeparators_ParseCorrectly#4", skip: pendingParse},
-	{id: "OptimizationVerificationTests.Constructor_AllSeparators_ParseCorrectly#5", skip: pendingParse},
-	{id: "OptimizationVerificationTests.Constructor_AllSeparators_ParseCorrectly#6", skip: pendingParse},
-	{id: "OptimizationVerificationTests.Constructor_AllSeparators_ParseCorrectly#7", skip: pendingParse},
-	{id: "OptimizationVerificationTests.Constructor_AllSeparators_ParseCorrectly#8", skip: pendingParse},
-	{id: "OptimizationVerificationTests.Constructor_InvalidStrings_ThrowsException#1", skip: pendingParse},
-	{id: "OptimizationVerificationTests.Constructor_InvalidStrings_ThrowsException#2", skip: pendingParse},
-	{id: "OptimizationVerificationTests.Constructor_InvalidStrings_ThrowsException#3", skip: pendingParse},
-	{id: "OptimizationVerificationTests.Constructor_InvalidStrings_ThrowsException#4", skip: pendingParse},
-	{id: "OptimizationVerificationTests.Constructor_InvalidStrings_ThrowsException#5", skip: pendingParse},
-	{id: "OptimizationVerificationTests.Constructor_InvalidStrings_ThrowsException#6", skip: pendingParse},
+	{id: "OptimizationVerificationTests.Constructor_AllSeparators_ParseCorrectly#1", run: parsesTo("2080/05/15", nd(2080, 5, 15))},
+	{id: "OptimizationVerificationTests.Constructor_AllSeparators_ParseCorrectly#2", run: parsesTo("2080-05-15", nd(2080, 5, 15))},
+	{id: "OptimizationVerificationTests.Constructor_AllSeparators_ParseCorrectly#3", run: parsesTo("2080.05.15", nd(2080, 5, 15))},
+	{id: "OptimizationVerificationTests.Constructor_AllSeparators_ParseCorrectly#4", run: parsesTo("2080_05_15", nd(2080, 5, 15))},
+	{id: "OptimizationVerificationTests.Constructor_AllSeparators_ParseCorrectly#5", run: parsesTo(`2080\05\15`, nd(2080, 5, 15))},
+	{id: "OptimizationVerificationTests.Constructor_AllSeparators_ParseCorrectly#6", run: parsesTo("2080 05 15", nd(2080, 5, 15))},
+	{id: "OptimizationVerificationTests.Constructor_AllSeparators_ParseCorrectly#7", run: parsesTo("2080।05।15", nd(2080, 5, 15))},
+	{id: "OptimizationVerificationTests.Constructor_AllSeparators_ParseCorrectly#8", run: parsesTo("2080|05|15", nd(2080, 5, 15))},
+	{id: "OptimizationVerificationTests.Constructor_InvalidStrings_ThrowsException#1", run: parseFailsSyntax("")},
+	{id: "OptimizationVerificationTests.Constructor_InvalidStrings_ThrowsException#2", run: parseFailsSyntax("invalid")},
+	{id: "OptimizationVerificationTests.Constructor_InvalidStrings_ThrowsException#3", run: parseFailsSyntax("2080/05")},
+	{id: "OptimizationVerificationTests.Constructor_InvalidStrings_ThrowsException#4", run: parseFailsSyntax("2080")},
+	{id: "OptimizationVerificationTests.Constructor_InvalidStrings_ThrowsException#5", run: parseFailsSyntax("2080/05/15/99")},
+	{id: "OptimizationVerificationTests.Constructor_InvalidStrings_ThrowsException#6", run: parseFailsSyntax("abc/def/ghi")},
 	{id: "OptimizationVerificationTests.Constructor_NullString_ThrowsException", skip: "n/a: a Go string is never nil"},
-	{id: "OptimizationVerificationTests.Constructor_WithoutLeadingZeros_ParsesCorrectly#1", skip: pendingParse},
-	{id: "OptimizationVerificationTests.Constructor_WithoutLeadingZeros_ParsesCorrectly#2", skip: pendingParse},
-	{id: "OptimizationVerificationTests.Constructor_WithoutLeadingZeros_ParsesCorrectly#3", skip: pendingParse},
+	{id: "OptimizationVerificationTests.Constructor_WithoutLeadingZeros_ParsesCorrectly#1", run: parsesTo("2080/5/15", nd(2080, 5, 15))},
+	{id: "OptimizationVerificationTests.Constructor_WithoutLeadingZeros_ParsesCorrectly#2", run: parsesTo("2080/05/5", nd(2080, 5, 5))},
+	{id: "OptimizationVerificationTests.Constructor_WithoutLeadingZeros_ParsesCorrectly#3", run: parsesTo("2080/1/1", nd(2080, 1, 1))},
 	{id: "OptimizationVerificationTests.Operator_Equality_SameDates_ReturnsTrue", run: func(t *testing.T) {
 		a, b := MustNew(2080, 5, 15), MustNew(2080, 5, 15)
 		check(t, a == b, "a == b")
@@ -442,6 +439,36 @@ func newFails(y int, m Month, d int, want error) func(*testing.T) {
 		_, err := New(y, m, d)
 		if !errors.Is(err, want) {
 			t.Errorf("New(%d, %d, %d) error = %v, want %v", y, m, d, err, want)
+		}
+	}
+}
+
+func parsesTo(input string, want Date) func(*testing.T) {
+	return func(t *testing.T) {
+		got, err := Parse(input)
+		if err != nil || got != want {
+			t.Errorf("Parse(%q) = %v, %v; want %v", input, got, err, want)
+		}
+	}
+}
+
+// parseFailsSyntax expects a *ParseError, C#'s InvalidNepaliDateFormatException or a false
+// TryParse, with the zero Date (C#'s default).
+func parseFailsSyntax(input string) func(*testing.T) {
+	return func(t *testing.T) {
+		got, err := Parse(input)
+		var pe *ParseError
+		if !errors.As(err, &pe) || !got.IsZero() {
+			t.Errorf("Parse(%q) = %v, %v; want a *ParseError", input, got, err)
+		}
+	}
+}
+
+func parseFailsWith(input string, want error) func(*testing.T) {
+	return func(t *testing.T) {
+		got, err := Parse(input)
+		if !errors.Is(err, want) || !got.IsZero() {
+			t.Errorf("Parse(%q) = %v, %v; want %v", input, got, err, want)
 		}
 	}
 }

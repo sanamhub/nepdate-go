@@ -108,7 +108,7 @@ var csharpRows2 = []csharpRow{
 	{id: "NepaliDateArithmeticEdgeCaseTests.TryParse_AutoAdjust_MonthDayYearInvertedOrder_ReturnsCorrectDate", skip: d06},
 	{id: "NepaliDateArithmeticEdgeCaseTests.TryParse_AutoAdjust_TwoDigitYear_ExpandsToCurrentMillennium", skip: d06},
 	{id: "NepaliDateArithmeticEdgeCaseTests.TryParse_AutoAdjust_InvalidDateAfterAdjustment_ReturnsFalse", skip: d06},
-	{id: "NepaliDateArithmeticEdgeCaseTests.TryParse_AutoAdjust_ValidStandardFormat_ReturnsCorrectDate", skip: pendingParse},
+	{id: "NepaliDateArithmeticEdgeCaseTests.TryParse_AutoAdjust_ValidStandardFormat_ReturnsCorrectDate", run: parsesTo("2080/05/15", nd(2080, 5, 15))},
 
 	// Core/NepaliDateManipulationTests
 	{id: "NepaliDateManipulationTests.MonthEndDate_ReturnsCorrectDate", run: func(t *testing.T) {
