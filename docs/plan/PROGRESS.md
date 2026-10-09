@@ -22,4 +22,5 @@ is filled in by the next commit.
 | G1 checkpoint | ready for review | f854c1b | `ci: 5/5 gates passed` (clean clone, Windows, Go 1.27.1, no `-race` locally) | 33 phase-1 C# rows pending G3-04 and G4-05 (see G1-07). Changelog updated in this commit |
 | G1 light check | ok | | | reviewer approved the estimate constants, int64 estimate, uint32 Compare and `TestCSharpCatalogueCovered`; pending markers are now the hub rule (PORT-PLAN, hub 94946ac) |
 | G2-01 | done | e2ac536 | `ci: 5/5 gates passed` | `FuzzAddDays` ran 30 s locally (`-parallel 2`), no finding. Zero Date: `AddDays` returns `ErrOutOfRange`, `DaysUntil` returns 0, `Next`/`Prev` return false (D-01) |
-| G2-02 | done | (next commit) | `ci: 5/5 gates passed` | none |
+| G2-02 | done | 456efa2 | `ci: 5/5 gates passed` | none |
+| G2-03 | done | (next commit) | `ci: 5/5 gates passed` | at most two `AddMonths` calls, no loop over days |

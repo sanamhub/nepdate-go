@@ -92,3 +92,37 @@ func (d Date) AddYears(n int, o Overflow) (Date, error) {
 	}
 	return d.AddMonths(12*n, o)
 }
+
+// Diff is the calendar distance between two dates (ALGORITHM §8a). Years, Months and Days are
+// magnitudes; Negative and TotalDays carry the sign.
+type Diff struct {
+	Negative            bool // the other date is earlier
+	Years, Months, Days int
+	TotalDays           int // the signed day count, the same as DaysUntil
+}
+
+// Diff returns the years, months and days from d to other: the largest whole number of months
+// that, added to the earlier date with Clamp, doesn't pass the later one, then the remaining
+// days. It returns the zero Diff if either date is the zero Date.
+func (d Date) Diff(other Date) Diff {
+	if d.IsZero() || other.IsZero() {
+		return Diff{}
+	}
+	a, b, neg := d, other, false
+	if a.After(b) {
+		a, b, neg = b, a, true
+	}
+	n := (int(b.year)-int(a.year))*12 + int(b.month) - int(a.month)
+	mid, _ := a.AddMonths(n, Clamp) // n months from a stays at or before b's month, so it is in range
+	if mid.After(b) {
+		n--
+		mid, _ = a.AddMonths(n, Clamp)
+	}
+	return Diff{
+		Negative:  neg,
+		Years:     n / 12,
+		Months:    n % 12,
+		Days:      mid.DaysUntil(b),
+		TotalDays: d.DaysUntil(other),
+	}
+}
