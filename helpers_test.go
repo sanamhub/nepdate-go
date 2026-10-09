@@ -12,7 +12,7 @@ import (
 // readTable reads a CSV or TSV vector file and returns its rows without the header, as maps
 // from column name to cell. It fails the test if the file has fewer than minRows rows, so a
 // truncated vector file can't pass.
-func readTable(t *testing.T, path string, sep string, minRows int) []map[string]string {
+func readTable(t testing.TB, path string, sep string, minRows int) []map[string]string {
 	t.Helper()
 	f, err := os.Open(path) //nolint:gosec // test reads vector files of the repository
 	if err != nil {
@@ -51,7 +51,7 @@ func readTable(t *testing.T, path string, sep string, minRows int) []map[string]
 }
 
 // ymd splits "YYYY-MM-DD" into numbers.
-func ymd(t *testing.T, s string) (y, m, d int) {
+func ymd(t testing.TB, s string) (y, m, d int) {
 	t.Helper()
 	parts := strings.Split(s, "-")
 	if len(parts) != 3 {
@@ -69,7 +69,7 @@ func ymd(t *testing.T, s string) (y, m, d int) {
 }
 
 // bsDate parses a "YYYY-MM-DD" BS date from a vector file.
-func bsDate(t *testing.T, s string) Date {
+func bsDate(t testing.TB, s string) Date {
 	t.Helper()
 	y, m, d := ymd(t, s)
 	date, err := New(y, Month(m), d) //nolint:gosec // New rejects a month outside 1..12
