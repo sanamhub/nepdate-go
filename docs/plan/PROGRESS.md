@@ -29,4 +29,5 @@ is filled in by the next commit.
 | G2-06 | done | 5037b72 | `ci: 5/5 gates passed` | 14 new allocation subtests, all 0. `TestConcurrentReads` adds `AddDays`, `AddMonths`, `Diff`. `TestCSharp` now 293 rows (113 phase 1 + 180 phase 2) |
 | G2 checkpoint | ready for review | 5037b72 | `ci: 5/5 gates passed` (clean clone, Windows, Go 1.27.1, no `-race` locally) | `TestCSharp` 293 rows: 186 run, 107 skip (D-09 48, D-06 10, D-02 4, D-12 3, n/a 4, pending 38: 33 need `Parse`, 5 need `FromTime`/`Today`). G2-05 done before G2-04 |
 | G2 light check | ok | | | reviewer confirmed `QuarterRange` returns `ErrOutOfRange` for a quarter outside Q1..Q4 (the "argument outside the supported domain" error; Rust and Kotlin can't express an invalid quarter); the doc comment names it |
-| G3-01 | done | (next commit) | `ci: 5/5 gates passed` | `AppendDigits` wraps the `appendDigits` added in G2-04 |
+| G3-01 | done | 970118c | `ci: 5/5 gates passed` | `AppendDigits` wraps the `appendDigits` added in G2-04 |
+| G3-02 | done | (next commit) | `ci: 5/5 gates passed` | Zero Date and unknown `DateOrder`/`Separator` format as "" (D-01: zero value of the result). Longest output measured: 68 bytes (Nepali long with weekday) |
