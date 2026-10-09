@@ -93,7 +93,19 @@ func generate(root string) ([]output, error) {
 	if err != nil {
 		return nil, err
 	}
-	return []output{{path: "calendar_gen.go", data: src}}, nil
+	files, err := loadPatroFiles(root)
+	if err != nil {
+		return nil, err
+	}
+	p, err := buildPatro(cal, files)
+	if err != nil {
+		return nil, err
+	}
+	patroSrc, err := renderPatro(cal, p)
+	if err != nil {
+		return nil, err
+	}
+	return []output{{path: "calendar_gen.go", data: src}, {path: "patro/patro_gen.go", data: patroSrc}}, nil
 }
 
 func loadCalendar(root string) (*calendar, error) {
@@ -307,6 +319,9 @@ func gofmt(name string, src []byte) ([]byte, error) {
 
 func writeFiles(root string, files []output) error {
 	for _, f := range files {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(root, f.path)), 0o750); err != nil {
+			return err
+		}
 		//nolint:gosec // generated Go source is committed, so it gets the usual 0644
 		if err := os.WriteFile(filepath.Join(root, f.path), f.data, 0o644); err != nil {
 			return err
