@@ -26,7 +26,7 @@ func checkParseResult(t *testing.T, d Date, err error) {
 }
 
 func seedParse(f *testing.F) {
-	for _, row := range readTable(f, "shared/spec/vectors/parse.tsv", "\t", 57) {
+	for _, row := range readTable(f, "shared/spec/vectors/parse.tsv", "\t", 63) {
 		f.Add(row["input"])
 	}
 }

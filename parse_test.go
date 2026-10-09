@@ -50,7 +50,7 @@ func checkParse(t *testing.T, what, input string, got Date, err error, cell stri
 }
 
 func parseRows(t *testing.T) []map[string]string {
-	return readTable(t, "shared/spec/vectors/parse.tsv", "\t", 57)
+	return readTable(t, "shared/spec/vectors/parse.tsv", "\t", 63)
 }
 
 func TestParseStrict(t *testing.T) {
@@ -109,7 +109,7 @@ func TestParseLenientExtra(t *testing.T) {
 		{"15/13/2080", "ERR:InvalidMonth"},
 		{"32 Bhadra 2081", "ERR:InvalidDay"},
 		{"१५.०४.२०८०", "2080-04-15"},
-		{"15Shrawan2080", "2080-04-15"},
+		{"15Shrawan2080", "ERR:Unrecognized"}, // one word (PARSING §2)
 		{"   ", "ERR:Unrecognized"},
 	}
 	for _, c := range cases {

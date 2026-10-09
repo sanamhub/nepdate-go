@@ -57,11 +57,10 @@ func (t *lenientTokens) split(s string) ParseErrorKind {
 	return 0
 }
 
-// chunk splits text between separators. All digits and dots: numbers split on the dots
-// ("15.04.2080"). Otherwise maximal runs of digits and of other characters ("B.S." stays one
-// word).
+// chunk handles the text between two separators. Digits and dots only: numbers split on the
+// dots ("15.04.2080"). Anything else is one word, dots and digits included, so "B.S." is an
+// era marker and "Shr.15" or "15Shrawan" match nothing (PARSING §2).
 func (t *lenientTokens) chunk(c string) ParseErrorKind {
-	numeric := true
 	for i := 0; i < len(c); {
 		if c[i] == '.' {
 			i++
@@ -69,41 +68,27 @@ func (t *lenientTokens) chunk(c string) ParseErrorKind {
 		}
 		_, w := digitAt(c, i)
 		if w == 0 {
-			numeric = false
-			break
+			t.word(c)
+			return 0
 		}
 		i += w
 	}
 	for i := 0; i < len(c); {
-		if numeric && c[i] == '.' {
+		if c[i] == '.' {
 			i++
 			continue
 		}
-		start := i
-		_, w := digitAt(c, i)
-		isNum := w > 0
 		value, digits := 0, 0
-		for i < len(c) {
+		for i < len(c) && c[i] != '.' {
 			d, w := digitAt(c, i)
-			if (w > 0) != isNum || (numeric && c[i] == '.') {
-				break
-			}
-			if isNum {
-				value = value*10 + d
-				digits++
-				i += w
-			} else {
-				i++
-			}
+			value = value*10 + d
+			digits++
+			i += w
 		}
-		if isNum {
-			if digits > maxDigits {
-				return NumberTooLong
-			}
-			t.add(lenientToken{value: value, digits: digits})
-		} else {
-			t.word(c[start:i])
+		if digits > maxDigits {
+			return NumberTooLong
 		}
+		t.add(lenientToken{value: value, digits: digits})
 	}
 	return 0
 }
