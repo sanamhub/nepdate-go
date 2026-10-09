@@ -4,16 +4,16 @@ import (
 	"errors"
 	"slices"
 	"testing"
+	"time"
 )
 
 // Phase-2 rows of the C# catalogue (see TestCSharp in csharp_test.go).
 
 const (
-	d02         = "D-02: AddMonths takes whole months only"
-	d06         = "D-06: autoAdjust guesses the field order or expands 2-digit years"
-	d09         = "D-09: Range has no set operations, splitting, working days or intervals"
-	d09String   = "D-09: Range has no String method; format Start and End instead"
-	pendingTime = "pending G4-05: needs FromTime"
+	d02       = "D-02: AddMonths takes whole months only"
+	d06       = "D-06: autoAdjust guesses the field order or expands 2-digit years"
+	d09       = "D-09: Range has no set operations, splitting, working days or intervals"
+	d09String = "D-09: Range has no String method; format Start and End instead"
 )
 
 var csharpRows2 = []csharpRow{
@@ -100,10 +100,14 @@ var csharpRows2 = []csharpRow{
 	{id: "NepaliDateArithmeticEdgeCaseTests.AddMonths_NegativeHalfMonth_SubtractsApproximately15Days", skip: d02},
 	{id: "NepaliDateArithmeticEdgeCaseTests.AddMonths_OneAndHalfMonths_AddsApproximately46Days", skip: d02},
 	{id: "NepaliDateArithmeticEdgeCaseTests.AddMonths_FractionalValue_ReturnsDateFurtherThanZeroMonths", skip: d02},
-	{id: "NepaliDateArithmeticEdgeCaseTests.Constructor_DateTimeWithMidnightTime_IgnoresTime", skip: pendingTime},
-	{id: "NepaliDateArithmeticEdgeCaseTests.Constructor_DateTimeWithNoonTime_IgnoresTime", skip: pendingTime},
-	{id: "NepaliDateArithmeticEdgeCaseTests.Constructor_DateTimeWithEndOfDayTime_IgnoresTime", skip: pendingTime},
-	{id: "NepaliDateArithmeticEdgeCaseTests.Constructor_TwoDateTimesOnSameEnglishDateDifferentTimes_ProduceSameNepaliDate", skip: pendingTime},
+	{id: "NepaliDateArithmeticEdgeCaseTests.Constructor_DateTimeWithMidnightTime_IgnoresTime", run: fromTimeIs(time.Date(2023, time.September, 1, 0, 0, 0, 0, time.UTC), nd(2080, 5, 15))},
+	{id: "NepaliDateArithmeticEdgeCaseTests.Constructor_DateTimeWithNoonTime_IgnoresTime", run: fromTimeIs(time.Date(2023, time.September, 1, 12, 30, 45, 0, time.UTC), nd(2080, 5, 15))},
+	{id: "NepaliDateArithmeticEdgeCaseTests.Constructor_DateTimeWithEndOfDayTime_IgnoresTime", run: fromTimeIs(time.Date(2023, time.September, 1, 23, 59, 59, 0, time.UTC), nd(2080, 5, 15))},
+	{id: "NepaliDateArithmeticEdgeCaseTests.Constructor_TwoDateTimesOnSameEnglishDateDifferentTimes_ProduceSameNepaliDate", run: func(t *testing.T) {
+		morning, err1 := FromTime(time.Date(2023, time.January, 1, 6, 0, 0, 0, time.UTC))
+		evening, err2 := FromTime(time.Date(2023, time.January, 1, 22, 0, 0, 0, time.UTC))
+		check(t, err1 == nil && err2 == nil && morning == evening, "same AD date, same BS date")
+	}},
 	{id: "NepaliDateArithmeticEdgeCaseTests.TryParse_AutoAdjust_DayYearMonthFormat_ReturnsCorrectDate", skip: d06},
 	{id: "NepaliDateArithmeticEdgeCaseTests.TryParse_AutoAdjust_MonthDayYearInvertedOrder_ReturnsCorrectDate", skip: d06},
 	{id: "NepaliDateArithmeticEdgeCaseTests.TryParse_AutoAdjust_TwoDigitYear_ExpandsToCurrentMillennium", skip: d06},
@@ -379,5 +383,14 @@ func rangesEqual(s1, e1, s2, e2 Date, want bool) func(*testing.T) {
 		a, _ := NewRange(s1, e1)
 		b, _ := NewRange(s2, e2)
 		check(t, (a == b) == want, "range equality")
+	}
+}
+
+func fromTimeIs(tm time.Time, want Date) func(*testing.T) {
+	return func(t *testing.T) {
+		got, err := FromTime(tm)
+		if err != nil || got != want {
+			t.Errorf("FromTime(%v) = %v, %v; want %v", tm, got, err, want)
+		}
 	}
 }

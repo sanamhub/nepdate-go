@@ -12,16 +12,14 @@ import (
 // H5). One subtest per catalogue row, named after the row id with "." and "#" replaced by "_"
 // (ADR-0004). A row that is not ported names its PARITY deviation or says n/a.
 //
-// Rows marked "pending G3" or "pending G4" need Parse (G3-04) or Today and FromTime (G4-05);
-// the marker comes out in the task that adds the API (hub PORT-PLAN, "C# test catalogue").
+// A row marked "pending" waits for the task that adds its API; the marker comes out in that
+// task (hub PORT-PLAN, "C# test catalogue").
 
 type csharpRow struct {
 	id   string
 	skip string
 	run  func(t *testing.T)
 }
-
-const pendingToday = "pending G4-05: needs Today and FromTime"
 
 // csharpPhases lists the catalogue phases this package covers so far.
 var csharpPhases = []string{"1", "2", "3"}
@@ -198,7 +196,14 @@ var csharpRows = []csharpRow{
 	{id: "NepaliDatePropertiesTests.MonthName_ReturnsCorrectEnum", run: func(t *testing.T) {
 		check(t, MustNew(2080, 5, 15).Month() == Bhadra, "month 5 is Bhadra")
 	}},
-	{id: "NepaliDatePropertiesTests.Today_ReturnsCurrentNepaliDate", skip: pendingToday},
+	{id: "NepaliDatePropertiesTests.Today_ReturnsCurrentNepaliDate", run: func(t *testing.T) {
+		// C# compares NepaliDate.Today with new NepaliDate(DateTime.Today); the clock may
+		// cross midnight between the two reads, so either side matches.
+		before, _ := FromTime(time.Now().In(kathmandu()))
+		today, err := Today(nil)
+		after, _ := FromTime(time.Now().In(kathmandu()))
+		check(t, err == nil && (today == before || today == after), "Today(nil) is today in Kathmandu")
+	}},
 	{id: "NepaliDatePropertiesTests.DayOfYear_FirstDayOfYear_Returns1", run: func(t *testing.T) {
 		check(t, MustNew(2080, 1, 1).YearDay() == 1, "Baishakh 1 is day 1")
 	}},
