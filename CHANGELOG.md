@@ -20,3 +20,7 @@ All notable changes to this module are recorded here. The format follows
 - Fiscal years: `FiscalYear`, `FiscalYearOf`, `Quarter`, with `Start`, `End`, `Range`,
   `QuarterRange` and `Label`.
 - `Range` with `NewRange`, `MonthRange`, `YearRange`, `Len`, `Contains` and `Days`.
+- Formatting: `String`, `Short`, `Long` and `Format`, each with an `Append` twin that doesn't
+  allocate; `DateOrder`, `Separator`, `LongOptions`; `Lang.AppendDigits` for Devanagari digits.
+- Parsing: strict `Parse` (ASCII or Devanagari digits) and `ParseLenient` for month names, era
+  markers and day-first dates.

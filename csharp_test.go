@@ -24,7 +24,7 @@ type csharpRow struct {
 const pendingToday = "pending G4-05: needs Today and FromTime"
 
 // csharpPhases lists the catalogue phases this package covers so far.
-var csharpPhases = []string{"1", "2"}
+var csharpPhases = []string{"1", "2", "3"}
 
 var csharpRows = []csharpRow{
 	// Abilities/NepaliDateComparableTests: _d1 = 2081-01-01, _d2 = 2081-06-15, _d3 = 2082-01-01.
@@ -355,7 +355,7 @@ var csharpRows = []csharpRow{
 
 // allCSharpRows is every ported catalogue row, phase by phase.
 func allCSharpRows() []csharpRow {
-	return slices.Concat(csharpRows, csharpRows2)
+	return slices.Concat(csharpRows, csharpRows2, csharpRows3)
 }
 
 func TestCSharp(t *testing.T) {

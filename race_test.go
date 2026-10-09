@@ -13,6 +13,9 @@ type concurrentResult struct {
 	plus1000        Date
 	plus13          Date
 	diff            Diff
+	long            [96]byte
+	longLen         int
+	parsed, lenient Date
 }
 
 func concurrentRound(dates *[64]Date) [64]concurrentResult {
@@ -25,6 +28,10 @@ func concurrentRound(dates *[64]Date) [64]concurrentResult {
 		r.plus1000, _ = d.AddDays(1000)
 		r.plus13, _ = d.AddMonths(13, Clamp)
 		r.diff = d.Diff(dates[(i+17)%len(dates)])
+		r.longLen = len(d.AppendLong(r.long[:0], LongOptions{Weekday: true}, Nepali))
+		var text [16]byte
+		r.parsed, _ = Parse(string(d.appendYMD(text[:0], '/')))
+		r.lenient, _ = ParseLenient(d.Long(LongOptions{}, English))
 	}
 	return out
 }
