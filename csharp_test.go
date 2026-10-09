@@ -12,8 +12,8 @@ import (
 // H5). One subtest per catalogue row, named after the row id with "." and "#" replaced by "_"
 // (ADR-0004). A row that is not ported names its PARITY deviation or says n/a.
 //
-// Rows marked "pending G3" or "pending G4" are phase-1 rows of the catalogue that need Parse
-// (G3-04) or Today and FromTime (G4-05); they become real tests in those tasks.
+// Rows marked "pending G3" or "pending G4" need Parse (G3-04) or Today and FromTime (G4-05);
+// the marker comes out in the task that adds the API (hub PORT-PLAN, "C# test catalogue").
 
 type csharpRow struct {
 	id   string
@@ -27,7 +27,7 @@ const (
 )
 
 // csharpPhases lists the catalogue phases this package covers so far.
-var csharpPhases = []string{"1"}
+var csharpPhases = []string{"1", "2"}
 
 var csharpRows = []csharpRow{
 	// Abilities/NepaliDateComparableTests: _d1 = 2081-01-01, _d2 = 2081-06-15, _d3 = 2082-01-01.
@@ -356,8 +356,13 @@ var csharpRows = []csharpRow{
 	}},
 }
 
+// allCSharpRows is every ported catalogue row, phase by phase.
+func allCSharpRows() []csharpRow {
+	return slices.Concat(csharpRows, csharpRows2)
+}
+
 func TestCSharp(t *testing.T) {
-	for _, row := range csharpRows {
+	for _, row := range allCSharpRows() {
 		t.Run(csharpTestName(row.id), func(t *testing.T) {
 			if row.skip != "" {
 				t.Skip(row.skip)
@@ -378,7 +383,7 @@ func TestCSharpCatalogueCovered(t *testing.T) {
 		}
 	}
 	seen := map[string]bool{}
-	for _, r := range csharpRows {
+	for _, r := range allCSharpRows() {
 		if seen[r.id] {
 			t.Errorf("row %s appears twice", r.id)
 		}

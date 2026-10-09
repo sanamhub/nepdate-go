@@ -15,3 +15,8 @@ All notable changes to this module are recorded here. The format follows
 - `Month` and `Lang` with `Name`, `ShortName` and `String`; `WeekdayName`, `WeekdayShortName`.
 - Errors `ErrOutOfRange`, `ErrInvalidMonth`, `ErrInvalidDay`, `ErrInvalidGregorian` and
   `ParseError`.
+- Arithmetic: `AddDays`, `AddMonths` and `AddYears` with `Clamp` or `Spill`, `Next`, `Prev`,
+  `DaysUntil` and `Diff`.
+- Fiscal years: `FiscalYear`, `FiscalYearOf`, `Quarter`, with `Start`, `End`, `Range`,
+  `QuarterRange` and `Label`.
+- `Range` with `NewRange`, `MonthRange`, `YearRange`, `Len`, `Contains` and `Days`.

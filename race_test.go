@@ -10,6 +10,9 @@ type concurrentResult struct {
 	newDate, fromAD Date
 	adY, adD        int
 	adM             time.Month
+	plus1000        Date
+	plus13          Date
+	diff            Diff
 }
 
 func concurrentRound(dates *[64]Date) [64]concurrentResult {
@@ -19,6 +22,9 @@ func concurrentRound(dates *[64]Date) [64]concurrentResult {
 		r.newDate, _ = New(d.Year(), d.Month(), d.Day())
 		r.adY, r.adM, r.adD = d.Gregorian()
 		r.fromAD, _ = FromGregorian(r.adY, r.adM, r.adD)
+		r.plus1000, _ = d.AddDays(1000)
+		r.plus13, _ = d.AddMonths(13, Clamp)
+		r.diff = d.Diff(dates[(i+17)%len(dates)])
 	}
 	return out
 }

@@ -25,4 +25,5 @@ is filled in by the next commit.
 | G2-02 | done | 456efa2 | `ci: 5/5 gates passed` | none |
 | G2-03 | done | 5e44f2d | `ci: 5/5 gates passed` | at most two `AddMonths` calls, no loop over days |
 | G2-05 | done | 060711d | `ci: 5/5 gates passed` | Done before G2-04 because `FiscalYear.Range` and `QuarterRange` return a `Range`. `Days` inlines (`-gcflags=-m`: `can inline Range.Days`), and ranging over it allocates 0 times |
-| G2-04 | done | (next commit) | `ci: 5/5 gates passed` | `QuarterRange` returns `ErrOutOfRange` for a quarter outside Q1..Q4 (the API and spec name no error for it; reviewer please confirm). `Label` needs Devanagari digits, so the unexported `appendDigits` lands here; G3-01 exposes it as `Lang.AppendDigits` |
+| G2-04 | done | bb881b3 | `ci: 5/5 gates passed` | `QuarterRange` returns `ErrOutOfRange` for a quarter outside Q1..Q4 (the API and spec name no error for it; reviewer please confirm). `Label` needs Devanagari digits, so the unexported `appendDigits` lands here; G3-01 exposes it as `Lang.AppendDigits` |
+| G2-06 | done | (next commit) | `ci: 5/5 gates passed` | 14 new allocation subtests, all 0. `TestConcurrentReads` adds `AddDays`, `AddMonths`, `Diff`. `TestCSharp` now 293 rows (113 phase 1 + 180 phase 2) |
