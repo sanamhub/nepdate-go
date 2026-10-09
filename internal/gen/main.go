@@ -12,6 +12,7 @@ import (
 	"flag"
 	"fmt"
 	"go/format"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -23,6 +24,15 @@ const (
 	minYear = 1901
 	maxYear = 2199
 	years   = maxYear - minYear + 1
+
+	bsMonths = years * 12 // 3588
+	// adFirstYear and adMonths cover AD 1844-01 to 2144-01, the AD months that touch the range.
+	adFirstYear = 1844
+	adMonths    = 300 * 12 // 3600
+
+	epochUnixDays = -45920 // days_from_civil(1844, 4, 11), ALGORITHM §2
+	maxSerial     = 109211
+	estShift      = 20
 )
 
 // output is one generated file, its path relative to the repository root.
@@ -75,15 +85,7 @@ func run(root string, checkOnly bool) error {
 
 // generate builds every generated file in memory.
 func generate(root string) ([]output, error) {
-	raw, err := os.ReadFile(filepath.Join(root, "shared", "data", "calendar", "bs-calendar.json")) //nolint:gosec // dev tool reading the repository
-	if err != nil {
-		return nil, err
-	}
-	var file calendarFile
-	if err := json.Unmarshal(raw, &file); err != nil {
-		return nil, fmt.Errorf("bs-calendar.json: %w", err)
-	}
-	cal, err := parseCalendar(&file)
+	cal, err := loadCalendar(root)
 	if err != nil {
 		return nil, err
 	}
@@ -92,6 +94,18 @@ func generate(root string) ([]output, error) {
 		return nil, err
 	}
 	return []output{{path: "calendar_gen.go", data: src}}, nil
+}
+
+func loadCalendar(root string) (*calendar, error) {
+	raw, err := os.ReadFile(filepath.Join(root, "shared", "data", "calendar", "bs-calendar.json")) //nolint:gosec // dev tool reading the repository
+	if err != nil {
+		return nil, err
+	}
+	var file calendarFile
+	if err := json.Unmarshal(raw, &file); err != nil {
+		return nil, fmt.Errorf("bs-calendar.json: %w", err)
+	}
+	return parseCalendar(&file)
 }
 
 // parseCalendar checks the range and that every year has 12 months of 29 to 32 days.
@@ -123,12 +137,164 @@ func parseCalendar(file *calendarFile) (*calendar, error) {
 	return cal, nil
 }
 
-func renderCalendar(_ *calendar) ([]byte, error) {
+func renderCalendar(cal *calendar) ([]byte, error) {
+	bs := bsStarts(cal)
+	if bs[bsMonths] != maxSerial+1 {
+		return nil, fmt.Errorf("bs-calendar.json: %d days in total, want %d", bs[bsMonths], maxSerial+1)
+	}
+	ad := adStarts()
+	bsMul, bsAdd, err := searchEstimate(bs[:])
+	if err != nil {
+		return nil, fmt.Errorf("BS month estimate: %w", err)
+	}
+	adMul, adAdd, err := searchEstimate(ad[:])
+	if err != nil {
+		return nil, fmt.Errorf("AD month estimate: %w", err)
+	}
+
 	var b bytes.Buffer
 	b.WriteString(header)
-	b.WriteString("\npackage nepdate\n\n")
-	b.WriteString("const (\n\tminYear = 1901\n\tmaxYear = 2199\n)\n")
+	b.WriteString("\n// Source: shared/data/calendar/bs-calendar.json. Layout: ADR-0002 §2 and §3.\n\n")
+	b.WriteString("package nepdate\n\n")
+	fmt.Fprintf(&b, `const (
+	minYear       = %d
+	maxYear       = %d
+	maxSerial     = %d
+	epochUnixDays = %d
+
+	// The month containing serial s is (s*mul + add) >> estShift or the month after it. The
+	// generator checked this for every serial 0..maxSerial.
+	estShift = %d
+	bsEstMul = %d
+	bsEstAdd = %d
+	adEstMul = %d
+	adEstAdd = %d
+)
+
+`, minYear, maxYear, maxSerial, epochUnixDays, estShift, bsMul, bsAdd, adMul, adAdd)
+
+	b.WriteString("// bsMonthStart[k] is the serial of the first day of BS month k = (y-1901)*12 + m-1.\n")
+	b.WriteString("// The last entry is the day after 2199-12-30.\n")
+	fmt.Fprintf(&b, "var bsMonthStart = [%d]int32{\n", bsMonths+1)
+	writeRows(&b, bs[:], minYear)
+	b.WriteString("}\n\n")
+
+	b.WriteString("// adMonthStart[k] is the serial of the first day of AD month k = (y-1844)*12 + m-1,\n")
+	b.WriteString("// AD 1844-01 to 2144-01. Months before 1844-04 start before the epoch.\n")
+	fmt.Fprintf(&b, "var adMonthStart = [%d]int32{\n", adMonths+1)
+	writeRows(&b, ad[:], adFirstYear)
+	b.WriteString("}\n")
 	return gofmt("calendar_gen.go", b.Bytes())
+}
+
+// writeRows writes 12 values per line, each line after a comment naming its year.
+func writeRows(b *bytes.Buffer, v []int32, firstYear int) {
+	for i := 0; i < len(v); i += 12 {
+		fmt.Fprintf(b, "\t// %d\n\t", firstYear+i/12)
+		for j := i; j < i+12 && j < len(v); j++ {
+			fmt.Fprintf(b, "%d, ", v[j])
+		}
+		b.WriteString("\n")
+	}
+}
+
+// bsStarts returns the serial of the first day of every BS month, plus the day after the range.
+func bsStarts(cal *calendar) [bsMonths + 1]int32 {
+	var starts [bsMonths + 1]int32
+	var s int32
+	for i := range years {
+		for m := range 12 {
+			starts[i*12+m] = s
+			s += int32(cal.lengths[i][m]) //nolint:gosec // 29..32, checked in parseCalendar
+		}
+	}
+	starts[bsMonths] = s
+	return starts
+}
+
+// adStarts returns the serial of the first day of every AD month from 1844-01 to 2144-01.
+func adStarts() [adMonths + 1]int32 {
+	var starts [adMonths + 1]int32
+	for k := range starts {
+		starts[k] = int32(daysFromCivil(adFirstYear+k/12, k%12+1, 1) - epochUnixDays) //nolint:gosec // within ±120000
+	}
+	return starts
+}
+
+// daysFromCivil is ALGORITHM §5 (Howard Hinnant), for years >= 0.
+func daysFromCivil(y, m, d int) int {
+	if m <= 2 {
+		y--
+	}
+	era := y / 400
+	yoe := y - era*400
+	mp := (m + 9) % 12
+	doy := (153*mp+2)/5 + d - 1
+	doe := yoe*365 + yoe/4 - yoe/100 + doy
+	return era*146097 + doe - 719468
+}
+
+// trueMonths returns, for every serial 0..maxSerial, the index k with
+// starts[k] <= s < starts[k+1].
+func trueMonths(starts []int32) []int64 {
+	ks := make([]int64, maxSerial+1)
+	k := 0
+	for s := range int32(maxSerial + 1) {
+		for starts[k+1] <= s {
+			k++
+		}
+		ks[s] = int64(k)
+	}
+	return ks
+}
+
+// searchEstimate finds mul and add such that (s*mul + add) >> estShift is the true month index of
+// s or one below it, for every serial. It tries multipliers outward from 2^estShift divided by
+// the mean month length and takes the middle of the widest-margin add interval for the first
+// multiplier that has one.
+func searchEstimate(starts []int32) (mul, add int64, err error) {
+	ks := trueMonths(starts)
+	months := int64(len(starts) - 1)
+	span := int64(starts[months] - starts[0])
+	ideal := (months<<estShift + span/2) / span
+	for step := range int64(2000) {
+		for _, m := range []int64{ideal + step, ideal - step} {
+			lo, hi := addInterval(ks, m)
+			if lo <= hi {
+				a := lo + (hi-lo)/2
+				if err := verifyEstimate(starts, m, a); err != nil {
+					return 0, 0, err
+				}
+				return m, a, nil
+			}
+			if step == 0 {
+				break
+			}
+		}
+	}
+	return 0, 0, errors.New("no multiplier within 2000 of the ideal works")
+}
+
+// addInterval returns the range of add values that keep every estimate within one month below
+// the true index, for multiplier mul. It is empty when lo > hi.
+func addInterval(ks []int64, mul int64) (lo, hi int64) {
+	lo, hi = math.MinInt64, math.MaxInt64
+	for s, k := range ks {
+		lo = max(lo, (k-1)<<estShift-int64(s)*mul)
+		hi = min(hi, (k+1)<<estShift-int64(s)*mul-1)
+	}
+	return lo, hi
+}
+
+// verifyEstimate checks mul and add against every serial and names the first one that fails.
+func verifyEstimate(starts []int32, mul, add int64) error {
+	for s, k := range trueMonths(starts) {
+		est := (int64(s)*mul + add) >> estShift
+		if d := k - est; d != 0 && d != 1 {
+			return fmt.Errorf("mul %d, add %d: serial %d estimates month %d, true month %d", mul, add, s, est, k)
+		}
+	}
+	return nil
 }
 
 func gofmt(name string, src []byte) ([]byte, error) {

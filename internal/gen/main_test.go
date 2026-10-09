@@ -99,3 +99,53 @@ func TestCheckFindsDrift(t *testing.T) {
 		t.Fatalf("after one changed byte: diff %v, want [%s]", diff, files[0].path)
 	}
 }
+
+func TestTablesFromData(t *testing.T) {
+	files, err := generate("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := string(files[0].data)
+	for _, want := range []string{"bsMonthStart = [3589]int32{", "adMonthStart = [3601]int32{", "// 2081\n", "maxSerial     = 109211"} {
+		if !strings.Contains(src, want) {
+			t.Errorf("calendar_gen.go lacks %q", want)
+		}
+	}
+	if strings.Contains(src, "func init") {
+		t.Error("calendar_gen.go has an init function")
+	}
+}
+
+func TestVerifyEstimateRejectsOffByOne(t *testing.T) {
+	cal, err := loadCalendar("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	bs := bsStarts(cal)
+	mul, add, err := searchEstimate(bs[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyEstimate(bs[:], mul, add); err != nil {
+		t.Fatalf("searched constants fail verification: %v", err)
+	}
+	if err := verifyEstimate(bs[:], mul, add-1<<estShift); err == nil {
+		t.Error("estimate one month too low accepted")
+	}
+	if err := verifyEstimate(bs[:], mul, add+1<<estShift); err == nil {
+		t.Error("estimate one month too high accepted")
+	}
+	if err := verifyEstimate(bs[:], mul+400, add); err == nil {
+		t.Error("multiplier 400 too high accepted")
+	}
+}
+
+func TestADStarts(t *testing.T) {
+	ad := adStarts()
+	if ad[0] != -101 {
+		t.Errorf("adMonthStart[0] = %d, want -101", ad[0])
+	}
+	if ad[3] != -10 || ad[4] != 20 {
+		t.Errorf("AD 1844-04 and 1844-05 start at %d and %d, want -10 and 20", ad[3], ad[4])
+	}
+}
