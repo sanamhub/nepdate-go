@@ -45,6 +45,8 @@ func TestFormatPatternExamples(t *testing.T) {
 		{"D", English, "Shrawan 15, 2081"},
 		{"D", Nepali, "साउन १५, २०८१"},
 		{"s", English, "2081-04-15"},
+		{"s", Nepali, "२०८१-०४-१५"},      // FORMATTING §5: digits per lang
+		{`yyyy-MM\`, English, "2081-04"}, // a trailing lone backslash writes nothing
 		// token runs and literals
 		{"y", English, "81"},
 		{"yyy", English, "81"},
