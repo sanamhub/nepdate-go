@@ -1,0 +1,21 @@
+# Lint configuration (ADR-0004 gate 2). golangci-lint v2.
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - staticcheck
+    - revive
+    - errorlint
+    - gocritic
+    - perfsprint
+    - prealloc
+    - gosec
+    - misspell
+    - unparam
+    - exhaustive
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports

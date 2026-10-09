@@ -68,14 +68,14 @@ func run(root string, checkOnly bool) error {
 		fmt.Fprintln(os.Stderr, "gen: out of date:", path)
 	}
 	if len(diff) > 0 {
-		return errors.New("generated files differ from shared/data; run go generate ./...")
+		return errors.New("generated files differ from shared/data (run go generate)")
 	}
 	return nil
 }
 
 // generate builds every generated file in memory.
 func generate(root string) ([]output, error) {
-	raw, err := os.ReadFile(filepath.Join(root, "shared", "data", "calendar", "bs-calendar.json"))
+	raw, err := os.ReadFile(filepath.Join(root, "shared", "data", "calendar", "bs-calendar.json")) //nolint:gosec // dev tool reading the repository
 	if err != nil {
 		return nil, err
 	}
@@ -141,6 +141,7 @@ func gofmt(name string, src []byte) ([]byte, error) {
 
 func writeFiles(root string, files []output) error {
 	for _, f := range files {
+		//nolint:gosec // generated Go source is committed, so it gets the usual 0644
 		if err := os.WriteFile(filepath.Join(root, f.path), f.data, 0o644); err != nil {
 			return err
 		}
@@ -153,7 +154,7 @@ func writeFiles(root string, files []output) error {
 func check(root string, files []output) ([]string, error) {
 	var diff []string
 	for _, f := range files {
-		disk, err := os.ReadFile(filepath.Join(root, f.path))
+		disk, err := os.ReadFile(filepath.Join(root, f.path)) //nolint:gosec // paths come from generate, not from input
 		if errors.Is(err, os.ErrNotExist) {
 			diff = append(diff, f.path)
 			continue

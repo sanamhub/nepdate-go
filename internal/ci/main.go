@@ -78,7 +78,7 @@ func runGates(gs []gate) int {
 // command runs name with args, printing the command line, with output going to the terminal.
 func command(name string, args ...string) error {
 	fmt.Println("$", name, strings.Join(args, " "))
-	cmd := exec.Command(name, args...)
+	cmd := exec.Command(name, args...) //nolint:gosec // the gate list is fixed in this file
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
@@ -88,11 +88,13 @@ func command(name string, args ...string) error {
 func output(name string, args ...string) (string, error) {
 	fmt.Println("$", name, strings.Join(args, " "))
 	var out bytes.Buffer
-	cmd := exec.Command(name, args...)
+	cmd := exec.Command(name, args...) //nolint:gosec // the gate list is fixed in this file
 	cmd.Stdout = &out
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
-	os.Stdout.Write(out.Bytes())
+	if _, werr := os.Stdout.Write(out.Bytes()); werr != nil && err == nil {
+		err = werr
+	}
 	return out.String(), err
 }
 
@@ -147,7 +149,7 @@ func testGate() error {
 }
 
 func goEnv(key string) (string, error) {
-	out, err := exec.Command("go", "env", key).Output()
+	out, err := exec.Command("go", "env", key).Output() //nolint:gosec // key is a constant at every call site
 	return strings.TrimSpace(string(out)), err
 }
 
