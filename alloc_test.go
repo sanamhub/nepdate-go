@@ -26,6 +26,7 @@ func TestAlloc(t *testing.T) {
 	e := MustNew(2082, Baishakh, 1)
 	month, _ := MonthRange(2081, Shrawan)
 	buf := make([]byte, 0, 128)
+	text := []byte("2081-04-15")
 	cases := []struct {
 		name string
 		f    func()
@@ -62,6 +63,8 @@ func TestAlloc(t *testing.T) {
 		{"ParseDevanagari", func() { sinkDate, sinkErr = Parse("२०८१/०४/१५") }},
 		{"ParseLenient", func() { sinkDate, sinkErr = ParseLenient("15 Shrawan 2080") }},
 		{"MonthShortName", func() { sinkString = Ashoj.ShortName(English) }},
+		{"AppendText", func() { sinkBytes, sinkErr = d.AppendText(buf[:0]) }},
+		{"UnmarshalText", func() { sinkErr = sinkDate.UnmarshalText(text) }},
 		{"RangeDays", func() {
 			for day := range month.Days() {
 				sinkDate = day
