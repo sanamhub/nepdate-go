@@ -23,4 +23,5 @@ is filled in by the next commit.
 | G1 light check | ok | | | reviewer approved the estimate constants, int64 estimate, uint32 Compare and `TestCSharpCatalogueCovered`; pending markers are now the hub rule (PORT-PLAN, hub 94946ac) |
 | G2-01 | done | e2ac536 | `ci: 5/5 gates passed` | `FuzzAddDays` ran 30 s locally (`-parallel 2`), no finding. Zero Date: `AddDays` returns `ErrOutOfRange`, `DaysUntil` returns 0, `Next`/`Prev` return false (D-01) |
 | G2-02 | done | 456efa2 | `ci: 5/5 gates passed` | none |
-| G2-03 | done | (next commit) | `ci: 5/5 gates passed` | at most two `AddMonths` calls, no loop over days |
+| G2-03 | done | 5e44f2d | `ci: 5/5 gates passed` | at most two `AddMonths` calls, no loop over days |
+| G2-05 | done | (next commit) | `ci: 5/5 gates passed` | Done before G2-04 because `FiscalYear.Range` and `QuarterRange` return a `Range`. `Days` inlines (`-gcflags=-m`: `can inline Range.Days`), and ranging over it allocates 0 times |
