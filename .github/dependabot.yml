@@ -1,0 +1,18 @@
+version: 2
+updates:
+  # Keeps the pinned action SHAs current. The cooldown gives a bad release a week to be pulled.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+  # The root module has no dependencies (ADR-0001 §3); only the competitor benchmarks do.
+  - package-ecosystem: gomod
+    directory: /benchmarks
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7

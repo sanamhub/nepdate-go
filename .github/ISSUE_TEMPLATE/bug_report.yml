@@ -1,0 +1,47 @@
+name: Bug report
+description: The library returns a wrong result, an unexpected error, or panics.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: input
+    attributes:
+      label: Input
+      description: The call and its arguments, as a short Go snippet.
+      placeholder: nepdate.Parse("2081-04-32")
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+      description: The result, error or panic message.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: nepdate-go version
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: input
+    id: go
+    attributes:
+      label: Go version
+      description: The output of go version.
+      placeholder: go version go1.27.1 linux/amd64
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: Ubuntu 24.04
+    validations:
+      required: true
