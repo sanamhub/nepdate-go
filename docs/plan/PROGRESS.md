@@ -17,4 +17,5 @@ is filled in by the next commit.
 | G1-03 | done | 51ce26b | `ci: 5/5 gates passed` | none |
 | G1-04 | done | 802535c | `ci: 5/5 gates passed` | `go build -gcflags=-m`: `serial.go:6:6: can inline toSerial`, `serial.go:13:6: can inline fromSerial` |
 | G1-05 | done | 64167ee | `ci: 5/5 gates passed` | Compare packs the fields into one uint32 and uses `cmp.Compare` (same result as field-by-field, inlines) |
-| G1-06 | done | (next commit) | `ci: 5/5 gates passed` | The oracle reads `bs-calendar.json` itself (not the generated tables) and is checked against ALGORITHM §9 by `TestReferenceOracle` |
+| G1-06 | done | 3868159 | `ci: 5/5 gates passed` | The oracle reads `bs-calendar.json` itself (not the generated tables) and is checked against ALGORITHM §9 by `TestReferenceOracle` |
+| G1-07 | done | (next commit) | `ci: 5/5 gates passed` | `TestCSharp` lists all 113 phase-1 rows: 68 run, 9 skip with a D-ID (D-06, D-12), 3 `n/a`, 33 pending: 32 rows of the phase-1 catalogue construct dates from strings (need `Parse`, G3-04) and 1 needs `Today` (G4-05). They turn into real tests in those tasks. `TestCSharpCatalogueCovered` checks the table against `catalog.tsv`. Exhaustive test: 0.01 s |
