@@ -40,6 +40,17 @@ func isStrictSeparator(c byte) bool {
 }
 
 func parseStrict[T text](s T) (Date, error) {
+	d, kind, err := scanStrict(s)
+	if kind != 0 {
+		return Date{}, parseError(s, kind)
+	}
+	return d, err
+}
+
+// scanStrict is the strict parser without building the *ParseError, so ParseLenient can try it
+// first and allocate nothing when it fails. A syntax failure returns its kind; a validation
+// failure returns New's error.
+func scanStrict[T text](s T) (Date, ParseErrorKind, error) {
 	var groups [strictGroups]int
 	n := 0 // groups started
 	inGroup := false
@@ -63,11 +74,11 @@ func parseStrict[T text](s T) (Date, error) {
 			i++
 			continue
 		default:
-			return Date{}, parseError(s, InvalidCharacter)
+			return Date{}, InvalidCharacter, nil
 		}
 		if !inGroup {
 			if n == strictGroups {
-				return Date{}, parseError(s, WrongGroupCount)
+				return Date{}, WrongGroupCount, nil
 			}
 			n++
 			inGroup = true
@@ -75,14 +86,15 @@ func parseStrict[T text](s T) (Date, error) {
 		}
 		digits++
 		if digits > maxDigits {
-			return Date{}, parseError(s, NumberTooLong)
+			return Date{}, NumberTooLong, nil
 		}
 		groups[n-1] = groups[n-1]*10 + d
 	}
 	if n < strictGroups {
-		return Date{}, parseError(s, WrongGroupCount)
+		return Date{}, WrongGroupCount, nil
 	}
-	return newFromInts(groups[0], groups[1], groups[2])
+	d, err := newFromInts(groups[0], groups[1], groups[2])
+	return d, 0, err
 }
 
 // newFromInts is New for numbers that may not fit a Month: it keeps New's error order (year,
