@@ -13,4 +13,5 @@ is filled in by the next commit.
 | G0 checkpoint | ready for review | e024eae | `ci: 5/5 gates passed` (clean clone, Windows, Go 1.27.1; gate 3 warned and ran without `-race`, `CGO_ENABLED=0`) | G0-05 partial: shared-check and shared-sync wait for hub H3 |
 | G0 light check | ok | | | reviewer reran CI: `ci: 5/5 gates passed`; G0-05 stays blocked on hub H3 |
 | G1-01 | done | e2c1ed0 | `ci: 5/5 gates passed` | Estimate constants found by the generator: BS mul 34449 add -560448, AD mul 34451 add 2963025 (ADR-0002 §3 quotes 34443 from the prototype; the generator picks the multiplier nearest 2^20 / mean month length and the middle of its valid add interval, then verifies every serial) |
-| G1-02 | done | (next commit) | `ci: 5/5 gates passed` | `Lang` gets only its type and constants here; `AppendDigits` is G3-01 |
+| G1-02 | done | 28520c2 | `ci: 5/5 gates passed` | `Lang` gets only its type and constants here; `AppendDigits` is G3-01 |
+| G1-03 | done | (next commit) | `ci: 5/5 gates passed` | none |
