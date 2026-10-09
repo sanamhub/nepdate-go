@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -57,6 +58,7 @@ func gates() []gate {
 		{"tests and coverage", testGate},
 		{"generated files", func() error { return command("go", "run", "./internal/gen", "-check") }},
 		{"govulncheck", func() error { return optional("govulncheck", "./...") }},
+		{"core isolation", isolationGate},
 	}
 }
 
@@ -191,6 +193,59 @@ func coverageOK(cs []coverage) error {
 		if !c.none && c.percent < minCoverage {
 			return fmt.Errorf("%s: coverage %.1f %% is below %.1f %%", c.pkg, c.percent, minCoverage)
 		}
+	}
+	return nil
+}
+
+// isolationMarker is an event name that only the patro tables hold (hub ADR-0004).
+const isolationMarker = "World Day Against Human Trafficking"
+
+const patroPackage = "github.com/sanamhub/nepdate-go/patro"
+
+// isolationGate is ADR-0004 gate 6: the core doesn't depend on patro, a core-only binary holds
+// no patro names, and a binary that uses patro does, so the check can't pass by accident.
+func isolationGate() error {
+	// The core-only program is listed too: a blank import of patro there links no patro data
+	// (nothing references it), so only the dependency list catches it.
+	deps, err := output("go", "list", "-deps", ".", "./internal/coreonly")
+	if err != nil {
+		return err
+	}
+	dir, err := os.MkdirTemp("", "nepdate-isolation")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.RemoveAll(dir) }()
+	core := filepath.Join(dir, "coreonly")
+	withPatro := filepath.Join(dir, "withpatro")
+	if err := command("go", "build", "-o", core, "./internal/coreonly"); err != nil {
+		return err
+	}
+	if err := command("go", "build", "-o", withPatro, "./internal/withpatro"); err != nil {
+		return err
+	}
+	coreBin, err := os.ReadFile(core) //nolint:gosec // a binary this gate just built
+	if err != nil {
+		return err
+	}
+	patroBin, err := os.ReadFile(withPatro) //nolint:gosec // a binary this gate just built
+	if err != nil {
+		return err
+	}
+	return isolationCheck(deps, coreBin, patroBin)
+}
+
+func isolationCheck(deps string, coreBin, patroBin []byte) error {
+	for _, line := range strings.Fields(deps) {
+		if strings.TrimSpace(line) == patroPackage {
+			return errors.New("package nepdate or internal/coreonly depends on " + patroPackage)
+		}
+	}
+	if bytes.Contains(coreBin, []byte(isolationMarker)) {
+		return fmt.Errorf("the core-only binary contains %q", isolationMarker)
+	}
+	if !bytes.Contains(patroBin, []byte(isolationMarker)) {
+		return fmt.Errorf("the patro binary lacks %q, so the core-only check proves nothing", isolationMarker)
 	}
 	return nil
 }

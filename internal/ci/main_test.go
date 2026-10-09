@@ -115,3 +115,20 @@ func TestRaceSupported(t *testing.T) {
 		}
 	}
 }
+
+func TestIsolationCheck(t *testing.T) {
+	marker := []byte(isolationMarker)
+	ok := isolationCheck("github.com/sanamhub/nepdate-go\nerrors\n", []byte("core"), append([]byte("x"), marker...))
+	if ok != nil {
+		t.Errorf("clean core failed: %v", ok)
+	}
+	if err := isolationCheck("github.com/sanamhub/nepdate-go/patro\n", []byte("core"), marker); err == nil {
+		t.Error("core depending on patro passed")
+	}
+	if err := isolationCheck("", append([]byte("core"), marker...), marker); err == nil {
+		t.Error("core binary with patro names passed")
+	}
+	if err := isolationCheck("", []byte("core"), []byte("patro without names")); err == nil {
+		t.Error("patro binary without the names passed")
+	}
+}
