@@ -65,8 +65,9 @@ func (f FiscalYear) Range() (Range, error) {
 	return Range{start, end}, nil
 }
 
-// QuarterRange returns the days of quarter q of f. It returns ErrOutOfRange if q is not Q1..Q4
-// or the quarter is outside the supported range.
+// QuarterRange returns the days of quarter q of f. It returns ErrOutOfRange if the quarter is
+// outside the supported range, and also if q is not Q1..Q4: ErrOutOfRange is the error for any
+// argument outside the supported domain.
 func (f FiscalYear) QuarterRange(q Quarter) (Range, error) {
 	if q < Q1 || q > Q4 {
 		return Range{}, ErrOutOfRange

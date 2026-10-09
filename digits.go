@@ -33,3 +33,11 @@ func appendDigit(b []byte, c byte, lang Lang) []byte {
 	}
 	return append(b, c)
 }
+
+// AppendDigits appends n in decimal to b and returns the extended slice. Nepali writes
+// Devanagari digits (U+0966 to U+096F), English writes ASCII digits. The number is zero-padded
+// to at least minWidth digits; minWidth counts digits, not bytes. A negative n gets a leading
+// '-'.
+func (l Lang) AppendDigits(b []byte, n, minWidth int) []byte {
+	return appendDigits(b, n, minWidth, l)
+}

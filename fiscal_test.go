@@ -107,7 +107,7 @@ func TestQuarterMonths(t *testing.T) {
 	}
 }
 
-func TestAppendDigits(t *testing.T) {
+func TestAppendDigitsInternal(t *testing.T) {
 	cases := []struct {
 		n, width int
 		lang     Lang
