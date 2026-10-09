@@ -14,4 +14,5 @@ is filled in by the next commit.
 | G0 light check | ok | | | reviewer reran CI: `ci: 5/5 gates passed`; G0-05 stays blocked on hub H3 |
 | G1-01 | done | e2c1ed0 | `ci: 5/5 gates passed` | Estimate constants found by the generator: BS mul 34449 add -560448, AD mul 34451 add 2963025 (ADR-0002 §3 quotes 34443 from the prototype; the generator picks the multiplier nearest 2^20 / mean month length and the middle of its valid add interval, then verifies every serial) |
 | G1-02 | done | 28520c2 | `ci: 5/5 gates passed` | `Lang` gets only its type and constants here; `AppendDigits` is G3-01 |
-| G1-03 | done | (next commit) | `ci: 5/5 gates passed` | none |
+| G1-03 | done | 51ce26b | `ci: 5/5 gates passed` | none |
+| G1-04 | done | (next commit) | `ci: 5/5 gates passed` | `go build -gcflags=-m`: `serial.go:6:6: can inline toSerial`, `serial.go:13:6: can inline fromSerial` |

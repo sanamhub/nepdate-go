@@ -46,9 +46,8 @@ var parseErrorText = [...]string{
 
 // Error returns a message naming the input and the kind.
 func (e *ParseError) Error() string {
-	msg := `nepdate: cannot parse "` + e.Input + `"`
 	if e.Kind >= InvalidCharacter && int(e.Kind) < len(parseErrorText) {
-		msg += ": " + parseErrorText[e.Kind]
+		return `nepdate: cannot parse "` + e.Input + `": ` + parseErrorText[e.Kind]
 	}
-	return msg
+	return `nepdate: cannot parse "` + e.Input + `"`
 }
