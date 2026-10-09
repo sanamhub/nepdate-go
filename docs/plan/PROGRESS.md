@@ -24,4 +24,5 @@ is filled in by the next commit.
 | G2-01 | done | e2ac536 | `ci: 5/5 gates passed` | `FuzzAddDays` ran 30 s locally (`-parallel 2`), no finding. Zero Date: `AddDays` returns `ErrOutOfRange`, `DaysUntil` returns 0, `Next`/`Prev` return false (D-01) |
 | G2-02 | done | 456efa2 | `ci: 5/5 gates passed` | none |
 | G2-03 | done | 5e44f2d | `ci: 5/5 gates passed` | at most two `AddMonths` calls, no loop over days |
-| G2-05 | done | (next commit) | `ci: 5/5 gates passed` | Done before G2-04 because `FiscalYear.Range` and `QuarterRange` return a `Range`. `Days` inlines (`-gcflags=-m`: `can inline Range.Days`), and ranging over it allocates 0 times |
+| G2-05 | done | 060711d | `ci: 5/5 gates passed` | Done before G2-04 because `FiscalYear.Range` and `QuarterRange` return a `Range`. `Days` inlines (`-gcflags=-m`: `can inline Range.Days`), and ranging over it allocates 0 times |
+| G2-04 | done | (next commit) | `ci: 5/5 gates passed` | `QuarterRange` returns `ErrOutOfRange` for a quarter outside Q1..Q4 (the API and spec name no error for it; reviewer please confirm). `Label` needs Devanagari digits, so the unexported `appendDigits` lands here; G3-01 exposes it as `Lang.AppendDigits` |
