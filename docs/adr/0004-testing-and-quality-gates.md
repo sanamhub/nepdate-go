@@ -23,8 +23,10 @@
 4. `go run ./internal/gen -check` (generated tables match `shared/data/`, ADR-0001 §5).
 5. `govulncheck ./...` (CI via `golang/govulncheck-action`). Skipped with a warning when not
    installed locally.
-6. Core isolation (hub ADR-0004), added in G4: `go list -deps .` must not list
-   `github.com/sanamhub/nepdate-go/patro`; `go build -o <temp dir>/coreonly ./internal/coreonly`
+6. Core isolation (hub ADR-0004), added in G4: `go list -deps . ./internal/coreonly` must not list
+   `github.com/sanamhub/nepdate-go/patro` (coreonly is listed because the linker drops
+   unreferenced patro tables, so a stray blank import of patro would pass the byte check; found
+   in G4); `go build -o <temp dir>/coreonly ./internal/coreonly`
    (a `package main` that imports only `nepdate`) produces a binary whose bytes don't contain
    `World Day Against Human Trafficking`; and `go build -o <temp dir>/withpatro ./internal/withpatro`
    (imports `patro` and prints the events of 2081-04-15) produces a binary whose bytes do contain
