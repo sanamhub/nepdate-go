@@ -22,7 +22,10 @@ type csharpRow struct {
 }
 
 // csharpPhases lists the catalogue phases this package covers so far.
-var csharpPhases = []string{"1", "2", "3"}
+var csharpPhases = []string{"1", "2", "3", "4", "D-14"}
+
+// patroRowPrefix marks the catalogue rows that package patro ports in its own TestCSharp.
+const patroRowPrefix = "CalendarDataTests."
 
 var csharpRows = []csharpRow{
 	// Abilities/NepaliDateComparableTests: _d1 = 2081-01-01, _d2 = 2081-06-15, _d3 = 2082-01-01.
@@ -360,7 +363,7 @@ var csharpRows = []csharpRow{
 
 // allCSharpRows is every ported catalogue row, phase by phase.
 func allCSharpRows() []csharpRow {
-	return slices.Concat(csharpRows, csharpRows2, csharpRows3)
+	return slices.Concat(csharpRows, csharpRows2, csharpRows3, csharpRows4)
 }
 
 func TestCSharp(t *testing.T) {
@@ -380,7 +383,7 @@ func TestCSharpCatalogueCovered(t *testing.T) {
 	rows := readTable(t, "shared/spec/vectors/csharp-tests/catalog.tsv", "\t", 542)
 	want := map[string]bool{}
 	for _, r := range rows {
-		if slices.Contains(csharpPhases, r["phase"]) {
+		if slices.Contains(csharpPhases, r["phase"]) && !strings.HasPrefix(r["id"], patroRowPrefix) {
 			want[r["id"]] = true
 		}
 	}

@@ -24,3 +24,9 @@ All notable changes to this module are recorded here. The format follows
   allocate; `DateOrder`, `Separator`, `LongOptions`; `Lang.AppendDigits` for Devanagari digits.
 - Parsing: strict `Parse` (ASCII or Devanagari digits) and `ParseLenient` for month names, era
   markers and day-first dates.
+- Package `patro`: `Of`, `Info` with `Tithi`, `IsPublicHoliday`, `Events`, `EventCount` and
+  `Event`, `Coverage` and `PublicHolidays`, for BS 2077-01-01 to 2084-08-20. Package `nepdate`
+  doesn't import it.
+- Text marshalling as `YYYY-MM-DD` (`MarshalText`, `AppendText`, `UnmarshalText`), so a `Date`
+  works with `encoding/json`, including as a map key.
+- `FromTime`, `Date.Time` and `Today`.
