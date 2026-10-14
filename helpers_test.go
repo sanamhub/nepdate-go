@@ -10,9 +10,9 @@ import (
 )
 
 // readTable reads a CSV or TSV vector file and returns its rows without the header, as maps
-// from column name to cell. It fails the test if the file has fewer than minRows rows, so a
-// truncated vector file can't pass.
-func readTable(t testing.TB, path string, sep string, minRows int) []map[string]string {
+// from column name to cell. It fails the test unless the file has exactly wantRows rows, so a
+// truncated, regenerated or grown vector file can't pass unnoticed.
+func readTable(t testing.TB, path string, sep string, wantRows int) []map[string]string {
 	t.Helper()
 	f, err := os.Open(path) //nolint:gosec // test reads vector files of the repository
 	if err != nil {
@@ -44,8 +44,8 @@ func readTable(t testing.TB, path string, sep string, minRows int) []map[string]
 	if err := sc.Err(); err != nil {
 		t.Fatal(err)
 	}
-	if len(rows) < minRows {
-		t.Fatalf("%s: %d rows, want at least %d", path, len(rows), minRows)
+	if len(rows) != wantRows {
+		t.Fatalf("%s: %d rows, want exactly %d", path, len(rows), wantRows)
 	}
 	return rows
 }

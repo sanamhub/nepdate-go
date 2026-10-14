@@ -50,7 +50,7 @@ func checkParse(t *testing.T, what, input string, got Date, err error, cell stri
 }
 
 func parseRows(t *testing.T) []map[string]string {
-	return readTable(t, "shared/spec/vectors/parse.tsv", "\t", 63)
+	return readTable(t, "shared/spec/vectors/parse.tsv", "\t", 67)
 }
 
 func TestParseStrict(t *testing.T) {

@@ -1,7 +1,5 @@
 package nepdate
 
-import "strings"
-
 // ParseLenient reads a date written by a person (shared/spec/PARSING.md §2), such as
 // "15 Shrawan 2080", "Shrawan 15, 2080", "१५ श्रावण २०८०" or "15.04.2080". It tries Parse first.
 // Otherwise it splits the text into numbers and words, drops era markers (BS, वि.सं.) and the
@@ -104,12 +102,12 @@ func (t *lenientTokens) add(tok lenientToken) {
 
 func (t *lenientTokens) word(w string) {
 	for _, m := range ignoredWords {
-		if strings.EqualFold(w, m) {
+		if foldEqual(w, m) {
 			return
 		}
 	}
 	for _, m := range monthWords {
-		if strings.EqualFold(w, m.name) {
+		if foldEqual(w, m.name) {
 			t.add(lenientToken{value: int(m.month)})
 			return
 		}
@@ -160,6 +158,38 @@ func (t *lenientTokens) date(s string) (Date, error) {
 	}
 }
 
+// The Kelvin sign U+212A is the 3 bytes 0xE2 0x84 0xAA.
+const (
+	kelvinLead   = 0xE2
+	kelvinSecond = 0x84
+	kelvinThird  = 0xAA
+)
+
+// foldEqual reports whether token equals entry under the folding of PARSING §2: A to Z fold to
+// lower case and the Kelvin sign folds to 'k', which is what Python str.lower() maps onto ASCII.
+// Nothing else folds, so unlike strings.EqualFold the long s U+017F does not match 's'. Every
+// entry is already lower case.
+func foldEqual(token, entry string) bool {
+	j := 0
+	for i := 0; i < len(token); {
+		c := token[i]
+		width := 1
+		switch {
+		case c >= 'A' && c <= 'Z':
+			c += 'a' - 'A'
+		case c == kelvinLead && i+2 < len(token) && token[i+1] == kelvinSecond &&
+			token[i+2] == kelvinThird:
+			c, width = 'k', 3
+		}
+		if j >= len(entry) || entry[j] != c {
+			return false
+		}
+		i += width
+		j++
+	}
+	return j == len(entry)
+}
+
 // digitAt returns the value and byte width of an ASCII or Devanagari digit at s[i], or width 0.
 func digitAt(s string, i int) (value, width int) {
 	if c := s[i]; c >= '0' && c <= '9' {
@@ -185,9 +215,10 @@ func lenientSeparator(s string, i int) int {
 	return 0
 }
 
-// ignoredWords are dropped by the lenient parser: era markers, गते (day) and मिति (date).
+// ignoredWords are dropped by the lenient parser: era markers, गते (day) and मिति (date). Latin
+// entries are lower case, as foldEqual needs.
 var ignoredWords = [...]string{
-	"BS", "B.S.", "B.S", "VS", "V.S.", "V.S",
+	"bs", "b.s.", "b.s", "vs", "v.s.", "v.s",
 	"बि.सं.", "वि.सं.", "बि.सं", "वि.सं",
 	"गते", "मिति",
 }
