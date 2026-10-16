@@ -1,44 +1,91 @@
 # nepdate-go
 
-Bikram Sambat (Nepali calendar) for Go. Part of the NepDate family: shared data and spec live
-in the hub [`sanamhub/nepdate`](https://github.com/sanamhub/nepdate); the C# original is
-[NepDate](https://github.com/RajuPrasai/NepDate).
+Bikram Sambat (Nepali) calendar for Go. Part of the NepDate family: shared data and the
+behaviour spec live in the hub [sanamhub/nepdate](https://github.com/sanamhub/nepdate); the C#
+original is [NepDate](https://github.com/RajuPrasai/NepDate).
 
-- Module `github.com/sanamhub/nepdate-go`, package `nepdate`. The patro (पात्रो, the Nepali
-  almanac: tithi, public holidays and events) is a separate package of the same module,
-  `github.com/sanamhub/nepdate-go/patro` (hub ADR-0004). The core never imports it, so a program
-  that only converts dates links no patro data.
+- Package `nepdate`, module `github.com/sanamhub/nepdate-go`. Patro (पात्रो, the Nepali almanac:
+  tithi, public holidays and events) is the package `github.com/sanamhub/nepdate-go/patro` of the
+  same module. The core never imports it, so a program that only converts dates links no patro
+  data.
 - Zero dependencies. Zero allocations on conversion, arithmetic, comparison, successful parsing,
-  `Append*` formatting and patro lookups (ADR-0002, measured with `-benchmem`).
-- BS 1901-01-01 to 2199-12-30 (AD 1844-04-11 to 2143-04-15). Same results as C# NepDate and every
-  other port, except the deviations in [shared/spec/PARITY.md](shared/spec/PARITY.md), proved by
-  the shared vectors.
-- Patro data covers BS 2077-01-01 to 2084-08-20 only
-  ([shared/spec/PATRO.md](shared/spec/PATRO.md)).
+  `Append*` formatting and patro lookups (measured with `-benchmem`).
+- BS 1901-01-01 to 2199-12-30 (AD 1844-04-11 to 2143-04-15). Patro data covers BS 2077-01-01 to
+  2084-08-20. Same results as C# NepDate and the other ports, except the deviations in
+  [shared/spec/PARITY.md](shared/spec/PARITY.md).
 
-**Status:** planning complete, implementation not started (next: phase G0).
-
-## Where to start
-
-| You are | Read |
-|---|---|
-| an AI agent implementing a phase | [AGENTS.md](AGENTS.md) → [docs/plan/00-ROADMAP.md](docs/plan/00-ROADMAP.md) |
-| reviewing the API | [docs/API.md](docs/API.md) |
-| comparing with other Go libraries | [docs/competitors.md](docs/competitors.md) |
-| wondering "why is it like this?" | [docs/adr/README.md](docs/adr/README.md) |
-| looking for the algorithm or data | [shared/spec/README.md](shared/spec/README.md) (changes go to the hub) |
-
-## Layout
+## Install
 
 ```
-shared/          hub copy: data/ (calendar JSON), spec/ (specs, vectors), VERSION (hub commit)
-*.go             package nepdate               (created in phase G0)
-patro/           package patro                 (phase G4)
-internal/gen/    table generator, run by go generate
-internal/ci/     the CI program: go run ./internal/ci
-benchmarks/      separate module: competitor benchmarks (phase G5)
-docs/            API.md, competitors.md, adr/, plan/, runbooks/
+go get github.com/sanamhub/nepdate-go
 ```
+
+Package docs: <https://pkg.go.dev/github.com/sanamhub/nepdate-go>
+
+## Quick start
+
+The snippets use `fmt`, `log` and `time` from the standard library, plus the two imports shown
+above. Construct a BS date and read its Gregorian date:
+
+```go
+	d, err := nepdate.New(2081, nepdate.Shrawan, 32)
+	if err != nil {
+		log.Fatal(err)
+	}
+	y, m, day := d.Gregorian()
+	fmt.Println(y, int(m), day)
+```
+
+Format in Nepali:
+
+```go
+	d, _ := nepdate.New(2081, nepdate.Shrawan, 15)
+	fmt.Println(d.Format("MMM d, yyyy", nepdate.Nepali))
+```
+
+Append a long form without allocating:
+
+```go
+	d, _ := nepdate.New(2081, nepdate.Shrawan, 15)
+	var buf []byte
+	buf = d.AppendLong(buf, nepdate.LongOptions{Weekday: true}, nepdate.Nepali)
+	fmt.Println(string(buf))
+```
+
+Parse what a person wrote:
+
+```go
+	d, err := nepdate.ParseLenient("15 Shrawan 2080")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(d)
+```
+
+Convert a Go time:
+
+```go
+	d, err := nepdate.FromTime(time.Date(2024, time.August, 16, 0, 0, 0, 0, time.UTC))
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(d)
+```
+
+Read the almanac for a date:
+
+```go
+	d, _ := nepdate.New(2081, nepdate.Baishakh, 1)
+	i := patro.Of(d)
+	t, _ := i.Tithi()
+	fmt.Println(t.Name(nepdate.Nepali), i.IsPublicHoliday())
+	for n := 0; n < i.EventCount(); n++ {
+		fmt.Println(i.Event(n).Name(nepdate.English))
+	}
+```
+
+A Date marshals to JSON as `"YYYY-MM-DD"`. Saving an unset (zero) Date returns an error, so use
+`*Date` for an optional field; nil marshals as null.
 
 ## License
 

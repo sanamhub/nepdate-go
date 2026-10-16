@@ -9,6 +9,7 @@ import (
 // FromTime(t.UTC()) can differ by a day: Nepal is UTC+05:45, so 2024-07-30 18:30 UTC is already
 // 2024-07-31 in Kathmandu (BS 2081-04-16, against 2081-04-15 in UTC). Convert t with In first
 // to get the date somewhere else. It returns ErrOutOfRange outside AD 1844-04-11..2143-04-15.
+// It does not allocate.
 func FromTime(t time.Time) (Date, error) {
 	return FromGregorian(t.Date())
 }

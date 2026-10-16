@@ -4,7 +4,7 @@ package nepdate
 const bsMonths = (maxYear - minYear + 1) * 12
 
 // AddDays returns d moved by n days. It returns ErrOutOfRange if the result is outside the
-// supported range or d is the zero Date.
+// supported range or d is the zero Date. It does not allocate.
 func (d Date) AddDays(n int) (Date, error) {
 	// The bound check comes first, so a huge n can't overflow a 32-bit int.
 	if d.IsZero() || n < -maxSerial || n > maxSerial {
@@ -17,20 +17,22 @@ func (d Date) AddDays(n int) (Date, error) {
 	return fromSerial(s), nil
 }
 
-// Next returns the day after d, or (Date{}, false) at Max and for the zero Date.
+// Next returns the day after d, or (Date{}, false) at Max and for the zero Date. It does not
+// allocate.
 func (d Date) Next() (Date, bool) {
 	next, err := d.AddDays(1)
 	return next, err == nil
 }
 
-// Prev returns the day before d, or (Date{}, false) at Min and for the zero Date.
+// Prev returns the day before d, or (Date{}, false) at Min and for the zero Date. It does not
+// allocate.
 func (d Date) Prev() (Date, bool) {
 	prev, err := d.AddDays(-1)
 	return prev, err == nil
 }
 
 // DaysUntil returns the signed number of days from d to other (PARITY D-07): positive when
-// other is later. It returns 0 if either date is the zero Date.
+// other is later. It returns 0 if either date is the zero Date. It does not allocate.
 func (d Date) DaysUntil(other Date) int {
 	if d.IsZero() || other.IsZero() {
 		return 0
@@ -53,7 +55,7 @@ const (
 
 // AddMonths returns d moved by n months, with o deciding what happens to a day past the end of
 // the target month. It returns ErrOutOfRange if the result is outside the supported range or d
-// is the zero Date.
+// is the zero Date. It does not allocate.
 func (d Date) AddMonths(n int, o Overflow) (Date, error) {
 	// The bound check comes first, so a huge n can't overflow a 32-bit int.
 	if d.IsZero() || n < -bsMonths || n > bsMonths {
@@ -84,7 +86,7 @@ func (d Date) AddMonths(n int, o Overflow) (Date, error) {
 }
 
 // AddYears returns d moved by n years, which is AddMonths(12*n, o). It returns ErrOutOfRange
-// like AddMonths.
+// like AddMonths. It does not allocate.
 func (d Date) AddYears(n int, o Overflow) (Date, error) {
 	// Checked before the multiplication, so 12*n can't overflow a 32-bit int.
 	if n < -(maxYear-minYear) || n > maxYear-minYear {
@@ -103,7 +105,7 @@ type Diff struct {
 
 // Diff returns the years, months and days from d to other: the largest whole number of months
 // that, added to the earlier date with Clamp, doesn't pass the later one, then the remaining
-// days. It returns the zero Diff if either date is the zero Date.
+// days. It returns the zero Diff if either date is the zero Date. It does not allocate.
 func (d Date) Diff(other Date) Diff {
 	if d.IsZero() || other.IsZero() {
 		return Diff{}

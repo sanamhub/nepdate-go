@@ -49,7 +49,8 @@ var (
 	}
 )
 
-// Name returns the month's full name in lang, or "" if m is not 1..12 or lang is unknown.
+// Name returns the month's full name in lang, or "" if m is not 1..12 or lang is unknown. It
+// does not allocate.
 func (m Month) Name(lang Lang) string {
 	if m < Baishakh || m > Chaitra || lang > Nepali {
 		return ""
@@ -59,7 +60,7 @@ func (m Month) Name(lang Lang) string {
 
 // ShortName returns the three-letter English abbreviation, or the full Nepali name for Nepali,
 // which has no customary abbreviation. Ashad is "Asa" and Ashoj is "Aso" (PARITY D-04). It
-// returns "" if m is not 1..12 or lang is unknown.
+// returns "" if m is not 1..12 or lang is unknown. It does not allocate.
 func (m Month) ShortName(lang Lang) string {
 	if m < Baishakh || m > Chaitra || lang > Nepali {
 		return ""
@@ -76,7 +77,7 @@ func (m Month) String() string {
 }
 
 // WeekdayName returns the full name of w in lang, or "" if w is not Sunday..Saturday or lang is
-// unknown.
+// unknown. It does not allocate.
 func WeekdayName(w time.Weekday, lang Lang) string {
 	if w < time.Sunday || w > time.Saturday || lang > Nepali {
 		return ""
@@ -85,7 +86,7 @@ func WeekdayName(w time.Weekday, lang Lang) string {
 }
 
 // WeekdayShortName returns the short name of w in lang ("Tue", "मङ्गल"), or "" if w is not
-// Sunday..Saturday or lang is unknown.
+// Sunday..Saturday or lang is unknown. It does not allocate.
 func WeekdayShortName(w time.Weekday, lang Lang) string {
 	if w < time.Sunday || w > time.Saturday || lang > Nepali {
 		return ""

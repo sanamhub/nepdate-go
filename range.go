@@ -9,7 +9,7 @@ type Range struct {
 }
 
 // NewRange returns the range start..end. It returns false if start is after end or either date
-// is the zero Date.
+// is the zero Date. It does not allocate.
 func NewRange(start, end Date) (Range, bool) {
 	if start.IsZero() || end.IsZero() || start.After(end) {
 		return Range{}, false
@@ -18,7 +18,7 @@ func NewRange(start, end Date) (Range, bool) {
 }
 
 // MonthRange returns every day of the given BS month. It returns New's errors for an invalid
-// year or month.
+// year or month. It does not allocate.
 func MonthRange(year int, month Month) (Range, error) {
 	first, err := New(year, month, 1)
 	if err != nil {
@@ -28,7 +28,7 @@ func MonthRange(year int, month Month) (Range, error) {
 }
 
 // YearRange returns every day of the BS year, Baishakh 1 to the last day of Chaitra. It returns
-// ErrOutOfRange for a year outside 1901..2199.
+// ErrOutOfRange for a year outside 1901..2199. It does not allocate.
 func YearRange(year int) (Range, error) {
 	if year < minYear || year > maxYear {
 		return Range{}, ErrOutOfRange
@@ -39,13 +39,14 @@ func YearRange(year int) (Range, error) {
 	}, nil
 }
 
-// Start returns the first day of r, or the zero Date for the zero Range.
+// Start returns the first day of r, or the zero Date for the zero Range. It does not allocate.
 func (r Range) Start() Date { return r.start }
 
-// End returns the last day of r, or the zero Date for the zero Range.
+// End returns the last day of r, or the zero Date for the zero Range. It does not allocate.
 func (r Range) End() Date { return r.end }
 
-// Len returns the number of days in r, counting both ends, or 0 for the zero Range.
+// Len returns the number of days in r, counting both ends, or 0 for the zero Range. It does not
+// allocate.
 func (r Range) Len() int {
 	if r.start.IsZero() {
 		return 0
@@ -53,12 +54,12 @@ func (r Range) Len() int {
 	return r.start.DaysUntil(r.end) + 1
 }
 
-// Contains reports whether d is in r. The zero Date is in no range.
+// Contains reports whether d is in r. The zero Date is in no range. It does not allocate.
 func (r Range) Contains(d Date) bool {
 	return !d.IsZero() && !r.start.IsZero() && !d.Before(r.start) && !d.After(r.end)
 }
 
-// Days returns an iterator over the days of r in order. It allocates nothing when ranged over
+// Days returns an iterator over the days of r in order. It does not allocate when ranged over
 // directly (ADR-0002 §6).
 func (r Range) Days() iter.Seq[Date] {
 	return func(yield func(Date) bool) {

@@ -15,7 +15,7 @@ var gregLen = [13]uint8{0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
 
 // FromGregorian returns the BS date of the AD date year-month-day. It returns
 // ErrInvalidGregorian if that AD date does not exist (2023-02-29) and ErrOutOfRange if it is
-// outside AD 1844-04-11..2143-04-15, checked in that order (ALGORITHM §3).
+// outside AD 1844-04-11..2143-04-15, checked in that order (ALGORITHM §3). It does not allocate.
 func FromGregorian(year int, month time.Month, day int) (Date, error) {
 	if month < time.January || month > time.December || day < 1 {
 		return Date{}, ErrInvalidGregorian
@@ -38,7 +38,7 @@ func FromGregorian(year int, month time.Month, day int) (Date, error) {
 	return fromSerial(s), nil
 }
 
-// Gregorian returns the AD date of d, or (0, 0, 0) for the zero Date.
+// Gregorian returns the AD date of d, or (0, 0, 0) for the zero Date. It does not allocate.
 func (d Date) Gregorian() (year int, month time.Month, day int) {
 	if d.IsZero() {
 		return 0, 0, 0
@@ -52,7 +52,7 @@ func (d Date) Gregorian() (year int, month time.Month, day int) {
 }
 
 // Weekday returns the day of the week of d (ALGORITHM §7). The zero Date returns Sunday, the
-// zero value of time.Weekday.
+// zero value of time.Weekday. It does not allocate.
 func (d Date) Weekday() time.Weekday {
 	if d.IsZero() {
 		return time.Sunday
@@ -60,7 +60,8 @@ func (d Date) Weekday() time.Weekday {
 	return time.Weekday((toSerial(d) + 4) % 7)
 }
 
-// YearDay returns the day of the BS year, 1 for Baishakh 1, or 0 for the zero Date.
+// YearDay returns the day of the BS year, 1 for Baishakh 1, or 0 for the zero Date. It does not
+// allocate.
 func (d Date) YearDay() int {
 	if d.IsZero() {
 		return 0
@@ -68,7 +69,8 @@ func (d Date) YearDay() int {
 	return int(toSerial(d)-bsMonthStart[(int(d.year)-minYear)*12]) + 1
 }
 
-// FirstOfMonth returns the first day of d's month, or the zero Date for the zero Date.
+// FirstOfMonth returns the first day of d's month, or the zero Date for the zero Date. It does
+// not allocate.
 func (d Date) FirstOfMonth() Date {
 	if d.IsZero() {
 		return Date{}
@@ -76,7 +78,8 @@ func (d Date) FirstOfMonth() Date {
 	return Date{d.year, d.month, 1}
 }
 
-// LastOfMonth returns the last day of d's month, or the zero Date for the zero Date.
+// LastOfMonth returns the last day of d's month, or the zero Date for the zero Date. It does not
+// allocate.
 func (d Date) LastOfMonth() Date {
 	if d.IsZero() {
 		return Date{}
@@ -85,7 +88,7 @@ func (d Date) LastOfMonth() Date {
 }
 
 // Compare returns -1 if d is before other, 0 if they are equal and +1 if d is after other. The
-// zero Date sorts before every valid date.
+// zero Date sorts before every valid date. It does not allocate.
 func (d Date) Compare(other Date) int {
 	return cmp.Compare(d.key(), other.key())
 }
@@ -95,8 +98,8 @@ func (d Date) key() uint32 {
 	return uint32(d.year)<<16 | uint32(d.month)<<8 | uint32(d.day)
 }
 
-// Before reports whether d is before other.
+// Before reports whether d is before other. It does not allocate.
 func (d Date) Before(other Date) bool { return d.Compare(other) < 0 }
 
-// After reports whether d is after other.
+// After reports whether d is after other. It does not allocate.
 func (d Date) After(other Date) bool { return d.Compare(other) > 0 }

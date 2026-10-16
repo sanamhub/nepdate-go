@@ -1,10 +1,10 @@
 // Package patro is the Nepali almanac (पात्रो) for package nepdate: the tithi (lunar day), the
 // public holiday flag and the events of a BS date.
 //
-// Data covers BS 2077-01-01 to 2084-08-20 (Coverage); dates outside it have no tithi, no holiday
-// and no events. The tables are compiled in from shared/data/patro/ (shared/spec/PATRO.md), so
-// no lookup reads a file or allocates. Package nepdate never imports this package, so a program
-// that only converts dates links none of this data (hub ADR-0004).
+// Data covers BS 2077-01-01 to 2084-08-20 (see Coverage); dates outside it have no tithi, no
+// holiday and no events. The tables are compiled in, so no lookup reads a file or allocates.
+// Package nepdate never imports this package, so a program that only converts dates links none
+// of this data.
 package patro
 
 import (
@@ -29,7 +29,7 @@ type Event struct {
 }
 
 // Of returns the almanac entry of d. It never fails: the zero Date and dates outside Coverage
-// return the empty Info.
+// return the empty Info. It does not allocate.
 func Of(d nepdate.Date) Info {
 	if d.IsZero() {
 		return Info{}
@@ -41,24 +41,25 @@ func Of(d nepdate.Date) Info {
 	return Info{dayInfo[i]}
 }
 
-// Tithi returns the tithi of the day, and false if the day has none.
+// Tithi returns the tithi of the day, and false if the day has none. It does not allocate.
 func (i Info) Tithi() (Tithi, bool) {
 	id := i.rec & tithiMask
 	return Tithi{uint16(id)}, id != 0
 }
 
-// IsPublicHoliday reports whether the day is a gazetted public holiday.
+// IsPublicHoliday reports whether the day is a gazetted public holiday. It does not allocate.
 func (i Info) IsPublicHoliday() bool {
 	return i.rec&holidayBit != 0
 }
 
-// EventCount returns the number of events of the day.
+// EventCount returns the number of events of the day. It does not allocate.
 func (i Info) EventCount() int {
 	return int(i.rec >> countShift & countMask)
 }
 
 // Event returns the n-th event of the day in file order, or the zero Event (Name "") if n is
-// out of range. Looping over EventCount and Event needs no closure, unlike Events.
+// out of range. Looping over EventCount and Event needs no closure, unlike Events. It does not
+// allocate.
 func (i Info) Event(n int) Event {
 	if n < 0 || n >= i.EventCount() {
 		return Event{}
@@ -66,8 +67,8 @@ func (i Info) Event(n int) Event {
 	return Event{eventName[int(i.rec>>firstShift)+n] + 1}
 }
 
-// Events returns the events of the day in file order. Ranging over it directly allocates
-// nothing.
+// Events returns the events of the day in file order. Ranging over it directly does not
+// allocate.
 func (i Info) Events() iter.Seq[Event] {
 	return func(yield func(Event) bool) {
 		for n := range i.EventCount() {
@@ -78,12 +79,14 @@ func (i Info) Events() iter.Seq[Event] {
 	}
 }
 
-// Name returns the tithi name in lang, or "" for the zero Tithi or an unknown lang.
+// Name returns the tithi name in lang, or "" for the zero Tithi or an unknown lang. It does not
+// allocate.
 func (t Tithi) Name(lang nepdate.Lang) string {
 	return name(t.ref, lang)
 }
 
-// Name returns the event name in lang, or "" for the zero Event or an unknown lang.
+// Name returns the event name in lang, or "" for the zero Event or an unknown lang. It does not
+// allocate.
 func (e Event) Name(lang nepdate.Lang) string {
 	return name(e.ref, lang)
 }
@@ -98,7 +101,7 @@ func name(ref uint16, lang nepdate.Lang) string {
 }
 
 // Coverage returns the smallest range that contains every day with almanac data, BS 2077-01-01
-// to 2084-08-20 with today's data.
+// to 2084-08-20 with today's data. It does not allocate.
 func Coverage() nepdate.Range {
 	first, _ := nepdate.Min.AddDays(covFirst)
 	last, _ := nepdate.Min.AddDays(covLast)
@@ -106,7 +109,8 @@ func Coverage() nepdate.Range {
 	return r
 }
 
-// PublicHolidays returns every public holiday in ascending order.
+// PublicHolidays returns every public holiday in ascending order. Ranging over it directly does
+// not allocate.
 func PublicHolidays() iter.Seq[nepdate.Date] {
 	return func(yield func(nepdate.Date) bool) {
 		for i, rec := range dayInfo {

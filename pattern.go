@@ -9,7 +9,7 @@ func (d Date) Format(pattern string, lang Lang) string {
 	return string(d.AppendFormat(buf[:0], pattern, lang))
 }
 
-// AppendFormat is Format appending to b. It doesn't allocate when b has room.
+// AppendFormat is Format appending to b. It does not allocate when b has room.
 func (d Date) AppendFormat(b []byte, pattern string, lang Lang) []byte {
 	if d.IsZero() {
 		return b
