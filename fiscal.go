@@ -15,7 +15,8 @@ const (
 	Q4
 )
 
-// FiscalYearOf returns the fiscal year that contains d, or 0 for the zero Date.
+// FiscalYearOf returns the fiscal year that contains d, or 0 for the zero Date. It does not
+// allocate.
 func FiscalYearOf(d Date) FiscalYear {
 	if d.IsZero() {
 		return 0
@@ -26,10 +27,12 @@ func FiscalYearOf(d Date) FiscalYear {
 	return FiscalYear(d.year) - 1
 }
 
-// FiscalYear returns the fiscal year that contains d, or 0 for the zero Date.
+// FiscalYear returns the fiscal year that contains d, or 0 for the zero Date. It does not
+// allocate.
 func (d Date) FiscalYear() FiscalYear { return FiscalYearOf(d) }
 
-// Quarter returns the fiscal quarter that contains d, or 0 for the zero Date.
+// Quarter returns the fiscal quarter that contains d, or 0 for the zero Date. It does not
+// allocate.
 func (d Date) Quarter() Quarter {
 	if d.IsZero() {
 		return 0
@@ -40,19 +43,21 @@ func (d Date) Quarter() Quarter {
 	return Q4
 }
 
-// Start returns Shrawan 1 of f. It returns ErrOutOfRange if that day is outside the range.
+// Start returns Shrawan 1 of f. It returns ErrOutOfRange if that day is outside the range. It
+// does not allocate.
 func (f FiscalYear) Start() (Date, error) {
 	return New(int(f), Shrawan, 1)
 }
 
 // End returns the last day of Ashad of f+1. It returns ErrOutOfRange if that day is outside the
-// range.
+// range. It does not allocate.
 func (f FiscalYear) End() (Date, error) {
 	first, err := New(int(f)+1, Ashad, 1)
 	return first.LastOfMonth(), err
 }
 
-// Range returns every day of f. It returns ErrOutOfRange if either end is outside the range.
+// Range returns every day of f. It returns ErrOutOfRange if either end is outside the range. It
+// does not allocate.
 func (f FiscalYear) Range() (Range, error) {
 	start, err := f.Start()
 	if err != nil {
@@ -67,7 +72,7 @@ func (f FiscalYear) Range() (Range, error) {
 
 // QuarterRange returns the days of quarter q of f. It returns ErrOutOfRange if the quarter is
 // outside the supported range, and also if q is not Q1..Q4: ErrOutOfRange is the error for any
-// argument outside the supported domain.
+// argument outside the supported domain. It does not allocate.
 func (f FiscalYear) QuarterRange(q Quarter) (Range, error) {
 	if q < Q1 || q > Q4 {
 		return Range{}, ErrOutOfRange
@@ -88,7 +93,8 @@ func (f FiscalYear) QuarterRange(q Quarter) (Range, error) {
 	return Range{first, last.LastOfMonth()}, nil
 }
 
-// Label returns the usual name of f, "2082/83" in English or "२०८२/८३" in Nepali.
+// Label returns the usual name of f, "2082/83" in English or "२०८२/८३" in Nepali. It does not
+// allocate.
 func (f FiscalYear) Label(lang Lang) string {
 	var buf [32]byte
 	b := appendDigits(buf[:0], int(f), 0, lang)
@@ -100,7 +106,8 @@ func (f FiscalYear) Label(lang Lang) string {
 	return string(appendDigits(b, next, 2, lang))
 }
 
-// Months returns the three months of q in order, or three zero Months if q is not Q1..Q4.
+// Months returns the three months of q in order, or three zero Months if q is not Q1..Q4. It
+// does not allocate.
 func (q Quarter) Months() [3]Month {
 	if q < Q1 || q > Q4 {
 		return [3]Month{}

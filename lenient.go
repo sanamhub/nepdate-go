@@ -6,7 +6,7 @@ package nepdate
 // words गते and मिति, and accepts a closed list of month names (PARSING §3) or three numbers
 // with the 4-digit year first or last. It never guesses (PARITY D-06): a 2-digit year is
 // Ambiguous. It returns a *ParseError when no rule matches, and New's error when the date is
-// invalid.
+// invalid. It does not allocate on success; a failed call allocates one *ParseError.
 func ParseLenient(s string) (Date, error) {
 	if d, kind, err := scanStrict(s); kind == 0 && err == nil {
 		return d, nil

@@ -16,7 +16,7 @@ var (
 
 // New returns the date year-month-day. It checks the year first, then the month, then the day
 // (ALGORITHM §3), and returns ErrOutOfRange for a year outside 1901..2199, ErrInvalidMonth for a
-// month outside 1..12 and ErrInvalidDay for a day outside the month.
+// month outside 1..12 and ErrInvalidDay for a day outside the month. It does not allocate.
 func New(year int, month Month, day int) (Date, error) {
 	if year < minYear || year > maxYear {
 		return Date{}, ErrOutOfRange
@@ -50,19 +50,20 @@ func monthLen(year int, month Month) int {
 	return int(bsMonthStart[k+1] - bsMonthStart[k])
 }
 
-// IsZero reports whether d is the zero Date, which is "no date".
+// IsZero reports whether d is the zero Date, which is "no date". It does not allocate.
 func (d Date) IsZero() bool { return d.year == 0 }
 
-// Year returns the BS year, 1901..2199, or 0 for the zero Date.
+// Year returns the BS year, 1901..2199, or 0 for the zero Date. It does not allocate.
 func (d Date) Year() int { return int(d.year) }
 
-// Month returns the BS month, or 0 for the zero Date.
+// Month returns the BS month, or 0 for the zero Date. It does not allocate.
 func (d Date) Month() Month { return Month(d.month) }
 
-// Day returns the day of the month, 1..32, or 0 for the zero Date.
+// Day returns the day of the month, 1..32, or 0 for the zero Date. It does not allocate.
 func (d Date) Day() int { return int(d.day) }
 
-// MonthLength returns the number of days in d's month, 29..32, or 0 for the zero Date.
+// MonthLength returns the number of days in d's month, 29..32, or 0 for the zero Date. It does
+// not allocate.
 func (d Date) MonthLength() int {
 	if d.IsZero() {
 		return 0

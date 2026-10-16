@@ -79,7 +79,7 @@ func (d Date) Short(o DateOrder, sep Separator, pad bool, lang Lang) string {
 	return string(d.AppendShort(buf[:0], o, sep, pad, lang))
 }
 
-// AppendShort is Short appending to b. It doesn't allocate when b has room.
+// AppendShort is Short appending to b. It does not allocate when b has room.
 func (d Date) AppendShort(b []byte, o DateOrder, sep Separator, pad bool, lang Lang) []byte {
 	if d.IsZero() || int(o) >= len(orderFields) || int(sep) >= len(separatorBytes) {
 		return b
@@ -118,7 +118,7 @@ func (d Date) Long(opts LongOptions, lang Lang) string {
 	return string(d.AppendLong(buf[:0], opts, lang))
 }
 
-// AppendLong is Long appending to b. It doesn't allocate when b has room.
+// AppendLong is Long appending to b. It does not allocate when b has room.
 func (d Date) AppendLong(b []byte, opts LongOptions, lang Lang) []byte {
 	if d.IsZero() {
 		return b

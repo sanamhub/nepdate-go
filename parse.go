@@ -3,7 +3,8 @@ package nepdate
 // Parse reads a date in the strict form of shared/spec/PARSING.md §1: year, month and day in
 // that order, ASCII or Devanagari digits (they may be mixed, PARITY D-05), at most 4 digits per
 // number, separated by any of - / . _ \ space । |. It returns a *ParseError when the text is not
-// in that form, and New's error when it names an invalid date.
+// in that form, and New's error when it names an invalid date. It does not allocate on success;
+// a failed call allocates one *ParseError.
 func Parse(s string) (Date, error) {
 	return parseStrict(s)
 }
