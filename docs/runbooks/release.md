@@ -8,6 +8,13 @@ Decided in ADR-0005. Owner: maintainer. Approver: a second person.
 2. `CHANGELOG.md` has `## [X.Y.Z] - YYYY-MM-DD`, moved out of `[Unreleased]`.
 3. `go run ./internal/ci release-check vX.Y.Z` passes.
 
+## Dry run (no tag)
+
+`release.yml` also has a `workflow_dispatch` input `version`. Running it with `version: vX.Y.Z`
+runs the preflight and full CI and skips the release and proxy jobs, so a version can be checked
+before the human tags it. Trigger it from the Actions tab, or run the preflight locally with
+`go run ./internal/ci release-check vX.Y.Z`. The dispatch path needs the GitHub remote.
+
 ## Releasing
 
 ```bash
