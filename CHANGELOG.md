@@ -4,6 +4,13 @@ All notable changes to this module are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Strict parsing of the `YYYY/MM/DD` text form uses a fast path, so `Parse` and `ParseLenient` are
+  faster on that form. Other forms and all errors are unchanged.
+
 ## [0.1.0] - 2026-10-17
 
 ### Added

@@ -53,3 +53,19 @@ AC:
 - The interleaved old versus new table shows at least a 30 % gain, with the load next to it.
 - `go run ./internal/ci` ends with `ci: 8/8 gates passed`.
 - `CHANGELOG.md` has an `[Unreleased]` line only if the change lands.
+
+## Result (2026-10-18)
+
+The interleaved run (old, new, old, new, and so on, 10 rounds each, `/high /affinity 4`, 300 ms per
+round) gives:
+
+| Binary | ns/date | B/op | allocs/op |
+|---|---:|---:|---:|
+| old | 45.39 ± 20 % | 0 | 0 |
+| new | 15.48 ± 28 % | 0 | 0 |
+
+The median gain is 65.9 % (p=0.000, n=10), so the 30 % threshold is met and the change lands. CPU
+load was 66.9 % minimum, 87.6 % median, 96.1 % maximum. The exhaustive test covers 109,212 dates
+times seven separators; `FuzzScanCanonical` ran 315,926 executions in 15 s with no finding. The
+negative control broke the month ones digit check: the exhaustive test failed on `1901-09-01` and
+the fuzz seeds failed on `2081/09/15` and `9999/99/99`.
