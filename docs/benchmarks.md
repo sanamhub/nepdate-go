@@ -72,7 +72,8 @@ covers B1 and B2.
   misses: 34.80 ns against C#'s 21.55 ns. A 2 s CPU profile of B6 (`-test.cpuprofile`) puts 68.8 %
   of the samples in `scanStrict` and 7.4 % in the inlined `devaAt`: the parser checks for
   Devanagari digits at every byte even though the B6 inputs are ASCII. The machine was loaded
-  during the run, so the miss is reported, not optimised away.
+  during the run, so the miss is reported, not optimised away. Design options are in
+  [`docs/plan/B6-strict-parse-options.md`](plan/B6-strict-parse-options.md).
 
 ## Agreement
 
