@@ -6,15 +6,16 @@ reviewer reads it in about an hour. Task IDs `G<phase>-<n>`; branch `feat/G1-04-
 
 ```
 G0 repo + CI ─► G1 core + conversion ─► G2 arithmetic/fiscal/range ─┐
-                         └────────────► G3 format + parse ───────────┴─► G4 patro + interop ──► G5 docs, bench, release
+                         └────────────► G3 format + parse ───────────┴─► G4 patro + interop ──► G5 docs, bench, release ──► G6 publish readiness
 ```
 
 Preconditions: hub task H0 merged, so `shared/VERSION` holds a hub commit SHA instead of `pending`;
 hub H3 (reusable `shared-check` and `shared-sync`) merged before G0-05. G2 and G3 may run in
-parallel; G4 needs both. Phases map one to one onto `shared/spec/PORT-PLAN.md` phases 0 to 5.
-Hub H5 (C# test catalogue) is needed for the `TestCSharp` AC of G1 to G4 and hub H6 (C# benchmark
-baseline) for the C# column in G5; if either is missing when a phase starts, do the rest of the
-phase and report that AC as blocked at the checkpoint.
+parallel; G4 needs both. Phases G0 to G5 map one to one onto `shared/spec/PORT-PLAN.md` phases 0
+to 5; G6 is a publish-readiness phase after them. Hub H5 (C# test catalogue) is needed for the
+`TestCSharp` AC of G1 to G4 and hub H6 (C# benchmark baseline) for the C# column in G5; if either is
+missing when a phase starts, do the rest of the phase and report that AC as blocked at the
+checkpoint.
 
 Every phase file ends with a **Checkpoint** section. The agent stops there, opens the PR and
 waits for the human review; it does not start the next phase on its own.
@@ -27,6 +28,7 @@ waits for the human review; it does not start the next phase on its own.
 | G3 | `G3-format-and-parse.md` | `Short`/`Long`/`Format` + `Append*`, strict and lenient parse, fuzz |
 | G4 | `G4-patro-and-interop.md` | package `patro`, core-isolation gate, text marshalling, `Today`, `FromTime`/`Time` |
 | G5 | `G5-docs-bench-release.md` | examples, benchmarks B1–B8 vs competitors and C# NepDate, release workflow, v0.1.0 |
+| G6 | `G6-publish-readiness.md` | consumer check outside the repository, doc-comment gate, docs gate, B6 strict-parse options |
 
 ## Definition of Done (every task)
 

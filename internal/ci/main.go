@@ -59,6 +59,8 @@ func gates() []gate {
 		{"generated files", func() error { return command("go", "run", "./internal/gen", "-check") }},
 		{"govulncheck", func() error { return optional("govulncheck", "./...") }},
 		{"core isolation", isolationGate},
+		{"doc comments", docGate},
+		{"docs", docsGate},
 	}
 }
 

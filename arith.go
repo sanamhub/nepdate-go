@@ -98,7 +98,8 @@ func (d Date) AddYears(n int, o Overflow) (Date, error) {
 // Diff is the calendar distance between two dates (ALGORITHM §8a). Years, Months and Days are
 // magnitudes; Negative and TotalDays carry the sign.
 type Diff struct {
-	Negative            bool // the other date is earlier
+	Negative bool // the other date is earlier
+	// Years, Months and Days are the non-negative magnitudes.
 	Years, Months, Days int
 	TotalDays           int // the signed day count, the same as DaysUntil
 }

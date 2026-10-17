@@ -32,8 +32,10 @@ const (
 // parses but names an invalid date returns ErrOutOfRange, ErrInvalidMonth or ErrInvalidDay
 // instead.
 type ParseError struct {
+	// Input is the text that failed to parse.
 	Input string
-	Kind  ParseErrorKind
+	// Kind is the syntax rule that failed.
+	Kind ParseErrorKind
 }
 
 var parseErrorText = [...]string{

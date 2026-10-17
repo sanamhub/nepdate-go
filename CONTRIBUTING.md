@@ -31,7 +31,7 @@ warning when they aren't installed; CI always runs them.
 ## Commits and PRs
 
 - [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`, with the
-  task ID first when there is one (`feat(nepdate): G1-04 serial conversion`).
+  plan's task ID first when there is one (`feat(nepdate): <task ID> serial conversion`).
 - One task per PR. Fill in the PR template, including "What to look at first".
 - Prose, comments and commit messages follow
   [`.claude/skills/writing-style/SKILL.md`](.claude/skills/writing-style/SKILL.md): no em dashes,

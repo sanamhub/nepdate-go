@@ -2,7 +2,7 @@
 
 Time and allocation of the Go port on operations B1 to B8 of
 [`shared/spec/BENCHMARK.md`](../shared/spec/BENCHMARK.md), against the four competitor Go libraries
-of [`docs/competitors.md`](../competitors.md) and the C# NepDate baseline.
+of [`docs/competitors.md`](competitors.md) and the C# NepDate baseline.
 
 ## Machine
 
@@ -38,7 +38,7 @@ benchstat -col /library bench.txt
 
 On this machine the command was run through a one-line batch file because Git Bash mangles the
 quoting, and the batch file writes the caret as `^^$` so cmd passes the literal `^$`. The raw
-output is published as [`go-bench.txt`](go-bench.txt) for later `benchstat` comparison.
+output is published as [`go-bench.txt`](benchmarks/go-bench.txt) for later `benchstat` comparison.
 
 ## Results
 
@@ -72,11 +72,12 @@ covers B1 and B2.
   misses: 34.80 ns against C#'s 21.55 ns. A 2 s CPU profile of B6 (`-test.cpuprofile`) puts 68.8 %
   of the samples in `scanStrict` and 7.4 % in the inlined `devaAt`: the parser checks for
   Devanagari digits at every byte even though the B6 inputs are ASCII. The machine was loaded
-  during the run, so the miss is reported, not optimised away.
+  during the run, so the miss is reported, not optimised away. Design options are in
+  [`docs/plan/B6-strict-parse-options.md`](plan/B6-strict-parse-options.md).
 
 ## Agreement
 
 The agrees counts come from `go test -run TestAgrees .`, which compares each competitor's B1 and
 B2 against `nepdate` on the 64 inputs. The differing years are listed in
-[`docs/competitors.md`](../competitors.md); the counts here match that table (for example gobs
+[`docs/competitors.md`](competitors.md); the counts here match that table (for example gobs
 differs in one of its 64 dates, and gobikramsambat in four).
