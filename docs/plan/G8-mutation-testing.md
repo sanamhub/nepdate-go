@@ -69,6 +69,41 @@ AC:
 - The final score and survivor count are recorded.
 - No production code is weakened: no check, error path or boundary is removed.
 
+Final run on 2026-10-18, after adding two tests. The first is
+`FiscalYear(-2).Label(English) == "-2/01"`, which exercises the sign branch at `fiscal.go:104`.
+The second is a Kelvin-sign month spelling, `15 \u212Aartik 2080`, which exercises the `foldEqual`
+branch. Gremlins still maps that branch to a switch-case condition, so the Kelvin test does not
+change the JSON status.
+
+| Metric | Baseline | Final |
+|---|---:|---:|
+| killed | 469 | 471 |
+| lived | 0 | 0 |
+| not covered | 53 | 51 |
+| timed out | 0 | 0 |
+| test efficacy | 100.00 % | 100.00 % |
+| mutations coverage | 89.85 % | 90.23 % |
+| survivors | 53 | 51 |
+
+The fiscal test killed the two `fiscal.go:104` mutants. The remaining 51 are dispositioned here:
+
+| File | Count | Disposition |
+|---|---:|---|
+| `lenient.go` | 21 | Switch and case conditions in `date`, `foldEqual` and `lenientSeparator`. The bodies are exercised by the parse vectors and the Kelvin test, and a manual `case nMonths == 1 && nNums != 2` mutation fails the suite. Gremlins cannot attribute coverage to the condition expression, so it never tests these mutants. Not equivalent, but unscorable by this tool. |
+| `pattern.go` | 11 | Switch cases in `appendToken`. The format golden tests exercise every case, and a manual `case c == 'y' && n > 4` mutation fails the suite. Same coverage artifact. |
+| `parse.go` | 9 | Switch cases in `scanStrictLoop`. The parse vectors exercise ASCII, Devanagari and danda digits, and a manual `case c > '0' && c <= '9'` mutation fails the suite. Same coverage artifact. |
+| `arith.go` | 4 | The compile-time constant `bsMonths`. A manual `(maxYear - minYear - 1) * 12` mutation fails `TestDiff` and `TestDiffTotalDaysMatchesDaysUntil`. Constant expressions have no coverage counter, so Gremlins does not score it. |
+| `time.go` | 3 | The `time.FixedZone("NPT", 5*3600+45*60)` fallback, reached only when the zone database is missing. Equivalent on a machine with tzdata and not reachable in the test environment without removing it. |
+| `errors.go` | 1 | `InvalidCharacter ParseErrorKind = iota + 1`. The `iota - 1` mutation is a negative value in a `uint8` constant and does not compile, so it is not viable. |
+| `names.go` | 1 | `English Lang = iota`. The `-iota` mutation makes `Nepali` negative in a `uint8` and does not compile, so it is not viable. |
+| `fiscal.go` | 1 | `Q1 Quarter = 1 + iota`. The `1 - iota` mutation makes Q3 and Q4 negative in a `uint8` and does not compile, so it is not viable. |
+
+The score is already 100.00 % before the tests, so the two tests do not change the score; they
+remove two uncovered mutants. The remaining survivors are compile-time constants, non-viable
+constants, a platform fallback, and switch-case conditions that Gremlins cannot map to a coverage
+counter. A manual mutation of a representative switch case from each file fails the suite, which is
+the evidence that the tests kill the behavior even though Gremlins cannot score it.
+
 ### G8-04 Gate
 `tools/mutation-check` enforces both numbers:
 

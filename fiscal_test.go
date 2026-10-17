@@ -55,6 +55,10 @@ func TestFiscalYear(t *testing.T) {
 	if got := FiscalYear(2099).Label(English); got != "2099/00" {
 		t.Errorf("Label of 2099 = %q", got)
 	}
+	// Label has no domain check; a negative value exercises the sign branch for (f+1)%100.
+	if got := FiscalYear(-2).Label(English); got != "-2/01" {
+		t.Errorf("Label of -2 = %q", got)
+	}
 	if _, err := FiscalYear(1900).Start(); !errors.Is(err, ErrOutOfRange) {
 		t.Errorf("FiscalYear(1900).Start() error = %v", err)
 	}
