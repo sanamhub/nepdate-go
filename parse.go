@@ -50,8 +50,18 @@ func parseStrict[T text](s T) (Date, error) {
 
 // scanStrict is the strict parser without building the *ParseError, so ParseLenient can try it
 // first and allocate nothing when it fails. A syntax failure returns its kind; a validation
-// failure returns New's error.
+// failure returns New's error. The canonical ASCII shape takes the fast path; everything else
+// runs the general loop.
 func scanStrict[T text](s T) (Date, ParseErrorKind, error) {
+	if d, ok, err := scanCanonical(s); ok {
+		return d, 0, err
+	}
+	return scanStrictLoop(s)
+}
+
+// scanStrictLoop is the general strict scanner: any strict separator, one to four digits per
+// group, ASCII or Devanagari digits. It is the reference for the fast path's differential tests.
+func scanStrictLoop[T text](s T) (Date, ParseErrorKind, error) {
 	var groups [strictGroups]int
 	n := 0 // groups started
 	inGroup := false
@@ -96,6 +106,31 @@ func scanStrict[T text](s T) (Date, ParseErrorKind, error) {
 	}
 	d, err := newFromInts(groups[0], groups[1], groups[2])
 	return d, 0, err
+}
+
+// scanCanonical is the fast path for the 10-byte ASCII shape YYYY/MM/DD, with any strict
+// separator. It reports false when the shape does not match, and the caller runs the general
+// loop. The digit tests are byte comparisons, so a non-digit, a Devanagari digit or a danda falls
+// through. newFromInts keeps the validation order and the errors of the general loop.
+func scanCanonical[T text](s T) (Date, bool, error) {
+	if len(s) != 10 {
+		return Date{}, false, nil
+	}
+	if !isStrictSeparator(s[4]) || !isStrictSeparator(s[7]) {
+		return Date{}, false, nil
+	}
+	y0, y1, y2, y3 := s[0], s[1], s[2], s[3]
+	m0, m1 := s[5], s[6]
+	d0, d1 := s[8], s[9]
+	if y0-'0' > 9 || y1-'0' > 9 || y2-'0' > 9 || y3-'0' > 9 ||
+		m0-'0' > 9 || m1-'0' > 9 || d0-'0' > 9 || d1-'0' > 9 {
+		return Date{}, false, nil
+	}
+	year := int(y0-'0')*1000 + int(y1-'0')*100 + int(y2-'0')*10 + int(y3-'0')
+	month := int(m0-'0')*10 + int(m1-'0')
+	day := int(d0-'0')*10 + int(d1-'0')
+	d, err := newFromInts(year, month, day)
+	return d, true, err
 }
 
 // newFromInts is New for numbers that may not fit a Month: it keeps New's error order (year,
