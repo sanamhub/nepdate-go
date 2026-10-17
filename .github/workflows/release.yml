@@ -59,6 +59,29 @@ jobs:
           cache: false
       - run: go run ./internal/ci
 
+  consumer:
+    # The same outside-the-module check as ci.yml, so a release cannot ship a module that does not
+    # import from outside the checkout.
+    needs: preflight
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27"
+          cache: false
+      - name: Consumer module outside the repository
+        run: go run ./tools/consumer-check
+      - name: Broken import fails
+        run: go run ./tools/consumer-check -negative
+
   lint:
     needs: preflight
     runs-on: ubuntu-latest
@@ -89,7 +112,7 @@ jobs:
     # A dispatched run stops at preflight and CI; the release and proxy jobs only run for a tag.
     # A dispatch started from a tag ref is still a dry run; only a tag push releases.
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-    needs: [ci, lint, govulncheck]
+    needs: [ci, lint, govulncheck, consumer]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production

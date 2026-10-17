@@ -40,6 +40,27 @@ jobs:
       # golangci-lint and govulncheck run in their own jobs below; here the CI program skips them.
       - run: go run ./internal/ci
 
+  consumer:
+    # A module outside the checkout imports both packages through a replace, as a user would.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27"
+          cache: false
+      - name: Consumer module outside the repository
+        run: go run ./tools/consumer-check
+      - name: Broken import fails
+        run: go run ./tools/consumer-check -negative
+
   lint:
     runs-on: ubuntu-latest
     timeout-minutes: 10
