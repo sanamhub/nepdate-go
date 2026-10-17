@@ -108,12 +108,36 @@ the evidence that the tests kill the behavior even though Gremlins cannot score 
 `tools/mutation-check` enforces both numbers:
 
 - `test_efficacy` is compared as an unrounded float against a threshold set just below the final
-  score.
-- `LIVED + NOT COVERED + TIMED OUT` is compared as an exact integer against a survivor ceiling.
+  score (99.5 % against 100.00 %).
+- `LIVED + NOT COVERED + TIMED OUT` is compared as an exact integer against a survivor ceiling
+  (51, the final count).
 
 The K7 lesson: a rounded percentage can hide a regression. 95.4 % must fail a 96 % gate, and one
-extra survivor must fail even when the rounded percentage stays the same. The CI job `mutation`
-runs the gate with `--workers=4`.
+extra survivor must fail even when the rounded percentage stays the same. The unit test
+`TestScoreIsNotRounded` checks 95.9 % against 96 %.
+
+The `mutation` job in `.github/workflows/ci.yml` runs
+`go run ./tools/mutation-check -workers=4` with a 40-minute timeout. The runner rejects a worker
+count above 4, and Gremlins also gets `--test-cpu=1`.
+
+Negative control: removing the `FiscalYear(-2).Label` assertion turns the two `fiscal.go:104`
+mutants from KILLED to NOT COVERED. The score stays at 100.00 %, because a not-covered mutant is
+not a lived mutant, but the survivor count becomes 53 and the gate fails on the ceiling:
+
+```
+mutation score: 100.00 % (killed 469, lived 0, not covered 53, timed out 0, not viable 0, total 469)
+survivors: 53 (lived 0, not covered 53, timed out 0)
+mutation-check: survivors 53 exceed the ceiling of 51
+```
+
+Restored, `go run ./tools/mutation-check -json E:/temp/g8/final.json` prints
+`mutation-check: ok`. A doctored copy of the report with `test_efficacy` set to 95.9 prints
+`mutation-check: test efficacy 95.90 % is below 99.50 %` and exits 1. The two checks cover
+different regressions: the score catches a covered mutant that stops being killed, and the ceiling
+catches a test that stops covering a line.
+
+The `mutation` job is a separate job in `ci.yml`, next to `ci`, `consumer`, `lint` and
+`govulncheck`. The eight gates inside `internal/ci` are unchanged, so the `ci:` line stays 8/8.
 
 AC:
 - The gate fails below the score threshold and above the survivor ceiling.

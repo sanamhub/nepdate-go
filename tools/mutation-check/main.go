@@ -29,11 +29,12 @@ const (
 	maxWorkers      = 4
 )
 
-// The gate defaults are set just below the final score from the G8 run. Zero disables the score
-// check and a negative ceiling disables the survivor ceiling, which is how the baseline runs.
+// The gate defaults are just below the final G8 score (100.00) and exactly at the final survivor
+// count (51). Zero disables the score check and a negative ceiling disables the survivor ceiling,
+// which is how the baseline runs.
 const (
-	defaultThreshold    = 0.0
-	defaultMaxSurvivors = -1
+	defaultThreshold    = 99.5
+	defaultMaxSurvivors = 51
 )
 
 // mutation is one mutant in the Gremlins JSON report.
