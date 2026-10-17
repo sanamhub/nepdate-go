@@ -6,14 +6,14 @@ reviewer reads it in about an hour. Task IDs `G<phase>-<n>`; branch `feat/G1-04-
 
 ```
 G0 repo + CI ─► G1 core + conversion ─► G2 arithmetic/fiscal/range ─┐
-                         └────────────► G3 format + parse ───────────┴─► G4 patro + interop ──► G5 docs, bench, release ──► G6 publish readiness ──► G7 B6 fast path
+                         └────────────► G3 format + parse ───────────┴─► G4 patro + interop ──► G5 docs, bench, release ──► G6 publish readiness ──► G7 B6 fast path ──► G8 mutation testing
 ```
 
 Preconditions: hub task H0 merged, so `shared/VERSION` holds a hub commit SHA instead of `pending`;
 hub H3 (reusable `shared-check` and `shared-sync`) merged before G0-05. G2 and G3 may run in
 parallel; G4 needs both. Phases G0 to G5 map one to one onto `shared/spec/PORT-PLAN.md` phases 0
-to 5; G6 and G7 are follow-up phases after them: publish readiness and the B6 fast path. Hub H5
-(C# test catalogue) is needed for the `TestCSharp` AC of G1 to G4 and hub H6 (C# benchmark
+to 5; G6 to G8 are follow-up phases: publish readiness, the B6 fast path and mutation testing. Hub
+H5 (C# test catalogue) is needed for the `TestCSharp` AC of G1 to G4 and hub H6 (C# benchmark
 baseline) for the C# column in G5; if either is missing when a phase starts, do the rest of the
 phase and report that AC as blocked at the checkpoint.
 
@@ -30,6 +30,7 @@ waits for the human review; it does not start the next phase on its own.
 | G5 | `G5-docs-bench-release.md` | examples, benchmarks B1–B8 vs competitors and C# NepDate, release workflow, v0.1.0 |
 | G6 | `G6-publish-readiness.md` | consumer check outside the repository, doc-comment gate, docs gate, B6 strict-parse options |
 | G7 | `G7-b6-fast-path.md` | canonical-shape ASCII fast path in `scanStrict`, differential tests, B6 measurement |
+| G8 | `G8-mutation-testing.md` | Gremlins on the core package, survivor tests, mutation gate |
 
 ## Definition of Done (every task)
 
