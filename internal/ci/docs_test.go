@@ -140,14 +140,21 @@ func TestDocsCheckFencedLink(t *testing.T) {
 }
 
 func TestIsUserFacing(t *testing.T) {
-	for _, file := range []string{"README.md", "CHANGELOG.md", "docs/API.md", "docs/benchmarks.md", "docs/competitors.md", "docs/runbooks/release.md"} {
-		if !isUserFacing(file) {
-			t.Errorf("%s is not user-facing", file)
-		}
+	cases := map[string]bool{
+		"README.md":                true,
+		"CHANGELOG.md":             true,
+		"CONTRIBUTING.md":          true,
+		"SECURITY.md":              true,
+		"docs/API.md":              true,
+		"docs/new-page.md":         true,
+		"docs/runbooks/release.md": true,
+		"docs/adr/0004-testing.md": false,
+		"docs/plan/G6-publish.md":  false,
+		"AGENTS.md":                false,
 	}
-	for _, file := range []string{"docs/adr/0001.md", "docs/plan/G6.md", "docs/plan/PROGRESS.md"} {
-		if isUserFacing(file) {
-			t.Errorf("%s is user-facing", file)
+	for file, want := range cases {
+		if got := isUserFacing(file); got != want {
+			t.Errorf("isUserFacing(%q) = %v, want %v", file, got, want)
 		}
 	}
 }

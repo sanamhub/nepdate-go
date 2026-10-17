@@ -86,3 +86,11 @@ From `cmd` in `benchmarks/`, with other applications closed, use the command in
 300 ms, then `benchstat -col /library`. Add `-test.cpuprofile` to check that the `scanStrict` and
 `devaAt` shares fall. The acceptance test is the median B6 `ns/date` under 21.55 with 0 B/op and
 0 allocs/op, and `go test ./...`, the parse vectors and the fuzz targets unchanged.
+
+## Reviewer decision (2026-10-18)
+
+Option A, after step 0. First rerun B6 on a quiet machine; if the current code is already under
+21.55 ns, change nothing. Otherwise implement Option A with two tests: an exhaustive differential
+test that parses every date from 1901-01-01 to 2199-12-30 with each strict separator through both
+the fast path and the old loop and requires identical results, and a fuzz target that compares the
+two on arbitrary input, including the errors. Options B and C are not taken.

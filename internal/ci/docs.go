@@ -21,7 +21,7 @@ func (i docIssue) String() string {
 	return fmt.Sprintf("%s:%d: %s", i.file, i.line, i.msg)
 }
 
-// docsGate checks README.md, CHANGELOG.md and every Markdown file under docs/: no em dash, every
+// docsGate checks README.md, CHANGELOG.md, CONTRIBUTING.md, SECURITY.md and every Markdown file under docs/: no em dash, every
 // relative link target exists, and no task ID in a user-facing file.
 func docsGate() error {
 	issues, n, err := docsCheck(".")
@@ -76,7 +76,7 @@ func docsCheck(root string) ([]docIssue, int, error) {
 // docFiles lists the Markdown files the gate covers, relative to root with forward slashes.
 func docFiles(root string) ([]string, error) {
 	var files []string
-	for _, name := range []string{"README.md", "CHANGELOG.md"} {
+	for _, name := range []string{"README.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md"} {
 		if _, err := os.Stat(filepath.Join(root, name)); err == nil {
 			files = append(files, name)
 		} else if !os.IsNotExist(err) {
@@ -171,12 +171,14 @@ func skipLink(target string) bool {
 	return false
 }
 
-// isUserFacing reports whether a file ships to users of the module. ADRs and plan files are for
-// maintainers, so they keep task IDs for traceability.
+// isUserFacing reports whether a file ships to users of the module: the root pages and every page
+// under docs/ except the ADRs and plans, which are for maintainers and keep task IDs for
+// traceability. A new docs page is user-facing unless it goes under docs/adr or docs/plan.
 func isUserFacing(file string) bool {
 	switch file {
-	case "README.md", "CHANGELOG.md", "docs/API.md", "docs/benchmarks.md", "docs/competitors.md":
+	case "README.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md":
 		return true
 	}
-	return strings.HasPrefix(file, "docs/runbooks/")
+	return strings.HasPrefix(file, "docs/") &&
+		!strings.HasPrefix(file, "docs/adr/") && !strings.HasPrefix(file, "docs/plan/")
 }
