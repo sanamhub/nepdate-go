@@ -74,6 +74,10 @@ covers B1 and B2.
   Devanagari digits at every byte even though the B6 inputs are ASCII. The machine was loaded
   during the run, so the miss is reported, not optimised away. Design options are in
   [`docs/plan/B6-strict-parse-options.md`](plan/B6-strict-parse-options.md).
+- Since this table was measured, strict parsing has a fast path for the exact `YYYY-MM-DD` shape
+  (option A). An interleaved run of the old and new code on the same loaded machine took B6 from
+  45.4 to 15.5 ns per date, 66 % faster (benchstat, p = 0.000, n = 10). The B6 row above is the
+  old code; the quiet-machine rerun before release replaces it.
 
 ## Agreement
 
