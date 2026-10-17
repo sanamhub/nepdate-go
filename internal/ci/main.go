@@ -60,6 +60,7 @@ func gates() []gate {
 		{"govulncheck", func() error { return optional("govulncheck", "./...") }},
 		{"core isolation", isolationGate},
 		{"doc comments", docGate},
+		{"docs", docsGate},
 	}
 }
 

@@ -3,7 +3,7 @@
 Checked 2026-09-25 against GitHub, pkg.go.dev, proxy.golang.org and the sources; rechecked
 2026-10-07 (pkg.go.dev searches `nepali`, `nepali date`, `bikram sambat`, `patro`; GitHub search
 `nepali date language:Go` and `bikram sambat language:Go`; `@latest` on proxy.golang.org for each
-module). Used by task G5-02 (benchmarks). None covers NepDate's range (1901–2199) or its features
+module). Used by the B1 and B2 benchmarks. None covers NepDate's range (1901–2199) or its features
 (parsing, fiscal year, tithi). The awesome-go list has no entry.
 
 ## Native support: none
