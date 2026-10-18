@@ -56,6 +56,16 @@ func TestOutsideRepoDifferentVolume(t *testing.T) {
 	if err := outsideRepo(`D:\checkout`, `C:\Users\runner\Temp\consumer`); err != nil {
 		t.Errorf("a directory on another volume failed: %v", err)
 	}
+	if err := outsideRepo(`\\host\share\checkout`, `\\host\other\consumer`); err != nil {
+		t.Errorf("a directory on another UNC share failed: %v", err)
+	}
+	// The same volume spelled in another case is still the same volume.
+	if err := outsideRepo(`E:\checkout`, `e:\checkout\consumer`); err == nil {
+		t.Error("a directory inside the repository passed as outside when the drive letter case differs")
+	}
+	if err := outsideRepo(`\\host\share\checkout`, `\\HOST\SHARE\checkout\consumer`); err == nil {
+		t.Error("a directory inside a UNC checkout passed as outside when the share case differs")
+	}
 }
 
 func TestWriteModule(t *testing.T) {

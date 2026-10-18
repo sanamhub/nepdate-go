@@ -3,12 +3,15 @@ package main
 import (
 	"fmt"
 	"go/ast"
+	"go/doc"
 	"go/parser"
 	"go/token"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // exampleAllowList names exported functions and types that cannot have a deterministic example.
@@ -28,7 +31,8 @@ func (t exampleTarget) String() string {
 }
 
 // exampleGate extends gate 8: every exported package-level function and every exported type in
-// nepdate and patro has an Example function whose name starts with Example<Name>.
+// nepdate and patro has an Example function named Example<Name> or Example<Name>_<suffix>, and every
+// Example function has an output comment, so go test runs it and checks what it prints.
 func exampleGate() error {
 	problems, total, err := exampleProblems([]string{".", "./patro"}, exampleAllowList)
 	if err != nil {
@@ -46,6 +50,7 @@ func exampleGate() error {
 func exampleProblems(dirs []string, allow map[string]string) ([]string, int, error) {
 	targets := make(map[string]exampleTarget)
 	examples := make(map[string]bool)
+	var problems []string
 	for _, dir := range dirs {
 		found, err := exportedTargets(dir)
 		if err != nil {
@@ -54,16 +59,16 @@ func exampleProblems(dirs []string, allow map[string]string) ([]string, int, err
 		for key, target := range found {
 			targets[key] = target
 		}
-		names, err := exampleNames(dir)
+		names, silent, err := exampleNames(dir)
 		if err != nil {
 			return nil, 0, err
 		}
 		for name := range names {
 			examples[name] = true
 		}
+		problems = append(problems, silent...)
 	}
 
-	var problems []string
 	for key, target := range targets {
 		if examples[key] {
 			continue
@@ -123,39 +128,43 @@ func exportedTargets(dir string) (map[string]exampleTarget, error) {
 	return targets, nil
 }
 
-// exampleNames returns the declarations an Example function documents, keyed like exportedTargets.
-// ExampleDate covers Date; ExampleDate_Format also covers Date.
-func exampleNames(dir string) (map[string]bool, error) {
+// exampleNames returns the declarations an Example function documents, keyed like exportedTargets,
+// and one problem line per Example function without an output comment. Names follow go vet and
+// go/doc: ExampleDate and ExampleDate_utc cover Date, while ExampleDate_Format documents the method
+// Format and does not cover Date.
+func exampleNames(dir string) (map[string]bool, []string, error) {
 	files, pkg, err := packageFiles(dir, true)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	names := make(map[string]bool)
-	for _, file := range files {
-		for _, decl := range file.Decls {
-			fn, ok := decl.(*ast.FuncDecl)
-			if !ok || fn.Recv != nil {
-				continue
-			}
-			if name := exampleTargetName(fn.Name.Name); name != "" {
-				names[pkg+"."+name] = true
-			}
+	var silent []string
+	for _, ex := range doc.Examples(files...) {
+		if ex.Output == "" && !ex.EmptyOutput {
+			silent = append(silent, fmt.Sprintf("%s: Example%s has no output comment", pkg, ex.Name))
+			continue
+		}
+		if name := exampleTargetName(ex.Name); name != "" {
+			names[pkg+"."+name] = true
 		}
 	}
-	return names, nil
+	return names, silent, nil
 }
 
-// exampleTargetName returns the identifier an Example function documents, or "" for a package
-// example. The optional suffix after the first underscore names a method or a variant.
+// exampleTargetName returns the function or type an example documents, given the Example function
+// name without its prefix, or "" for a package example or a method example. A final part after an
+// underscore that does not start with an upper-case letter is a variant suffix and is dropped first,
+// as go/doc does.
 func exampleTargetName(name string) string {
-	rest, ok := strings.CutPrefix(name, "Example")
-	if !ok || rest == "" {
+	if i := strings.LastIndexByte(name, '_'); i >= 0 {
+		if r, _ := utf8.DecodeRuneInString(name[i+1:]); !unicode.IsUpper(r) {
+			name = name[:i]
+		}
+	}
+	if strings.Contains(name, "_") {
 		return ""
 	}
-	if i := strings.IndexByte(rest, '_'); i >= 0 {
-		rest = rest[:i]
-	}
-	return rest
+	return name
 }
 
 // packageFiles returns the parsed files in dir and the package name. Test files are included only
@@ -177,7 +186,7 @@ func packageFiles(dir string, tests bool) ([]*ast.File, string, error) {
 		if !tests && strings.HasSuffix(name, "_test.go") {
 			continue
 		}
-		file, err := parser.ParseFile(fset, filepath.Join(dir, name), nil, 0)
+		file, err := parser.ParseFile(fset, filepath.Join(dir, name), nil, parser.ParseComments)
 		if err != nil {
 			return nil, "", err
 		}
