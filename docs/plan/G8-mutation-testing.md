@@ -200,8 +200,12 @@ AC:
 
 ### G8b-03 Release rule
 A tag is only made from a `main` commit whose `ci` run, including the `mutation` job, is green.
-`release.yml` does not run the mutation gate itself; it runs the eight `internal/ci` gates, lint,
-govulncheck and the consumer check. The same sentence is in `docs/runbooks/release.md`.
+The same sentence is in `docs/runbooks/release.md`.
+
+Review follow-up: the rule was a manual check. `release.yml` now has its own `mutation` job, and
+the `release` job needs it next to `ci`, `lint`, `govulncheck` and `consumer`, so the workflow
+enforces the rule. Both mutation jobs pin Go 1.27.1, the version the baseline was measured with,
+because a toolchain patch can move coverage mapping; a Go bump re-runs `-update` in the same PR.
 
 No ADR is added. ADR-0004 lists gates 1 to 6 and ADR-0006 adds gates 7 and 8. The mutation job is
 outside `internal/ci`, so neither gate list changes. ADR-0005 already says tags are made on `main`
