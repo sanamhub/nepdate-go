@@ -10,6 +10,7 @@ All notable changes to this module are recorded here. The format follows
 
 - Runnable examples for every exported function and type, including arithmetic, fiscal years,
   ranges, JSON marshalling and the patro queries.
+- CI tests the minimum supported version, Go 1.24.13 (ADR-0008).
 
 ### Changed
 

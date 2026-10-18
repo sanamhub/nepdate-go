@@ -13,7 +13,8 @@ month length, holiday or tithi, or a question about the spec, goes there as an i
 
 ## Checks
 
-Go 1.24 or later. CI runs the tests on Go 1.24 and the full gates on Go 1.26 and 1.27. Before a PR:
+The module supports Go 1.24 or later (ADR-0008); the gates need Go 1.26 or later, and CI runs them
+on 1.26 and 1.27 and the tests alone on 1.24.13. Before a PR:
 
 ```bash
 go run ./internal/ci

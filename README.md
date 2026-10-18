@@ -4,7 +4,7 @@ Bikram Sambat (Nepali) calendar for Go. Part of the NepDate family: shared data 
 behaviour spec live in the hub [sanamhub/nepdate](https://github.com/sanamhub/nepdate); the C#
 original is [NepDate](https://github.com/RajuPrasai/NepDate).
 
-Go 1.24 or later. CI runs the tests on Go 1.24 and the full gates on Go 1.26 and 1.27.
+Go 1.24 or later. CI runs the tests on Go 1.24.13 and the full gates on Go 1.26 and 1.27.
 
 - Package `nepdate`, module `github.com/sanamhub/nepdate-go`. Patro (पात्रो, the Nepali almanac:
   tithi, public holidays and events) is the package `github.com/sanamhub/nepdate-go/patro` of the
