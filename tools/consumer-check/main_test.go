@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -45,6 +46,15 @@ func TestOutsideRepo(t *testing.T) {
 	}
 	if err := outsideRepo(root, outside); err != nil {
 		t.Errorf("a sibling directory failed: %v", err)
+	}
+}
+
+func TestOutsideRepoDifferentVolume(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("volume names exist only on Windows")
+	}
+	if err := outsideRepo(`D:\checkout`, `C:\Users\runner\Temp\consumer`); err != nil {
+		t.Errorf("a directory on another volume failed: %v", err)
 	}
 }
 

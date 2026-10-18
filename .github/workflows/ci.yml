@@ -18,8 +18,15 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        go: ["1.26", "1.27"]
+        # 1.24 is the minimum in go.mod; it runs the tests only, on Linux. The full gates need the
+        # Go 1.26 and 1.27 entries.
+        go: ["1.24.x", "1.26", "1.27"]
         goarch: [""]
+        exclude:
+          - os: windows-latest
+            go: "1.24.x"
+          - os: macos-latest
+            go: "1.24.x"
         include:
           # int is 32 bits on 386, which is where the overflow guards in AddDays and AddMonths matter.
           - os: ubuntu-latest
@@ -38,7 +45,12 @@ jobs:
           go-version: ${{ matrix.go }}
           cache: false
       # golangci-lint and govulncheck run in their own jobs below; here the CI program skips them.
-      - run: go run ./internal/ci
+      - name: Tests on the minimum Go version
+        if: matrix.go == '1.24.x'
+        run: go test ./...
+      - name: Quality gates
+        if: matrix.go != '1.24.x'
+        run: go run ./internal/ci
 
   consumer:
     # A module outside the checkout imports both packages through a replace, as a user would.

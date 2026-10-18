@@ -13,7 +13,7 @@ month length, holiday or tithi, or a question about the spec, goes there as an i
 
 ## Checks
 
-Go 1.26 or later. Before a PR:
+Go 1.24 or later. CI runs the tests on Go 1.24 and the full gates on Go 1.26 and 1.27. Before a PR:
 
 ```bash
 go run ./internal/ci

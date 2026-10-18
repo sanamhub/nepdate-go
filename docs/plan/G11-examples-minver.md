@@ -59,6 +59,21 @@ AC:
 - If the line did not change, README still states the supported range and CONTRIBUTING no longer
   says Go 1.26 or later.
 
+Result on 2026-10-18: Go 1.24.13 installed at `D:\devcache\g11\go1.24` from the official zip, SHA-256
+`40b16bc8f00540a2cb02dff4de72b73e966fdd8d65f95e33d8e4080b48a2459a`. With `GOTOOLCHAIN=local` and
+the G11 caches, `go test -count=1 ./...` passed all 10 packages and `go run ./tools/consumer-check`
+printed the pinned lines. The `go` line stays 1.24, so no ADR was needed.
+
+The first consumer run failed before reaching the module: `filepath.Rel` cannot compare the C:
+temp directory with the E: checkout, so `outsideRepo` returned
+`consumer-check: Rel: can't make C:\Users\... relative to E:\github\sanamhub\nepdate-go`. This
+was a tool bug, not a Go 1.24 difference, and it also affects the Windows CI job, whose checkout is
+on D: and temp on C:. `outsideRepo` now treats a different Windows volume as outside, with
+`TestOutsideRepoDifferentVolume` on Windows. The positive and negative checks pass after the fix.
+
+`ci.yml` adds `1.24.x` to the matrix on `ubuntu-latest` only, with a `go test ./...` step and the
+other entries still running `go run ./internal/ci`. `actionlint` accepted the workflow.
+
 ### G11-02 Examples
 Today there are six `Example*` functions: `ExampleNew`, `ExampleDate_Format`,
 `ExampleDate_AppendLong`, `ExampleParseLenient`, `ExampleFromTime` and `ExampleOf`. Add runnable
