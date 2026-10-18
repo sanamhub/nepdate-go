@@ -71,9 +71,8 @@ func TestSummarizePasses(t *testing.T) {
 	}
 }
 
-// TestScoreIsNotRounded is the K7 lesson: 95.4 must fail a 96 gate, even though it prints as
-// 95.40 and a whole-number comparison would also reject it; 95.9 must fail even though a
-// one-decimal rounding to 96 would pass.
+// TestScoreIsNotRounded is the K7 lesson: 95.9 must fail a 96 gate even though rounding to a
+// whole number would pass it, and exactly 96 must pass.
 func TestScoreIsNotRounded(t *testing.T) {
 	rep := sampleReport()
 	rep.TestEfficacy = 95.9

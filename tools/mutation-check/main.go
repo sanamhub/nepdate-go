@@ -108,6 +108,11 @@ func run(baseline bool, workers int, threshold float64, maxSurvivors int, out, j
 		}
 	}
 	defer cleanup()
+	// The Windows fallback below trusts an existing report, so a report left by an earlier run
+	// at the -out path must not survive into this one.
+	if err := os.Remove(jsonPath); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
 
 	args := []string{
 		"run", gremlinsPackage + "@" + gremlinsVersion, "unleash",
