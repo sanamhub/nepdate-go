@@ -123,24 +123,28 @@ target.
 | `FuzzParseLenient` | `nepdate` | `ParseLenient` | 67 | Same typed-error and `String` round-trip invariant as `FuzzParse`. |
 | `FuzzUnmarshalText` | `nepdate` | `UnmarshalText`, `MarshalText` | 67 | Same typed-error rule, then a text round trip through `MarshalText` and `UnmarshalText`. |
 | `FuzzAddDays` | `nepdate` | `AddDays` | 4 | Adding `n` then `-n` returns the original date; every error is `ErrOutOfRange`. |
-| `FuzzFormatRoundTrip` | `nepdate` | `Short`, `AppendShort` | 3 | Widened in G10-01: all 6 orders, 6 separators, both pad values and both languages; a test-only formatter is the oracle; YMD output parses back. |
+| `FuzzFormatRoundTrip` | `nepdate` | `Short`, `AppendShort` | 10 | Widened in G10-01: all 6 orders, 6 separators, both pad values and both languages; a test-only formatter is the oracle; YMD output parses back. |
 | `FuzzScanCanonical` | `nepdate` | unexported `scanStrict` path | 19 | The fast path agrees with the reference loop on date and error, and dispatch returns the same result. |
 
 New targets:
 
 | Target | Package | Entry point | Seeds | Independent oracle or invariant |
 |---|---|---|---:|---|
-| `FuzzLong` | `nepdate` | `Long`, `AppendLong` | 3 | A test-only long formatter built from the FORMATTING §1 names and §4 layout. |
+| `FuzzLong` | `nepdate` | `Long`, `AppendLong` | 4 | A test-only long formatter built from the FORMATTING §1 names and §4 layout. |
 | `FuzzFormatPattern` | `nepdate` | `Format`, `AppendFormat` | 6 | A test-only pattern scanner built from FORMATTING §5; `AppendFormat` keeps a prefix. |
-| `FuzzText` | `nepdate` | `String`, `MarshalText`, `AppendText` | 3 | A `fmt.Sprintf` oracle; the text parse round trip is an independent direction. |
-| `FuzzAppendDigits` | `nepdate` | `Lang.AppendDigits` | 4 | A test-only decimal formatter from the ADR-0002 digit rule; zero padding and sign are explicit. |
+| `FuzzText` | `nepdate` | `String`, `MarshalText`, `AppendText` | 4 | A `fmt.Sprintf` oracle; the text parse round trip is an independent direction. |
+| `FuzzAppendDigits` | `nepdate` | `Lang.AppendDigits` | 5 | A test-only decimal formatter from the ADR-0002 digit rule; zero padding and sign are explicit. |
 
 `Month.Name`, `Month.ShortName`, `WeekdayName` and `WeekdayShortName` are table lookups with no
 parse or scan path. The format oracles check their output for every date, and the static tables are
 covered by the golden vectors, so no separate target is added. `patro` has no parse or format entry
 point.
 
-No `testdata/fuzz` corpus is committed at the start of the phase.
+The six existing targets and four new targets hold 253 seeds: 67 each for `FuzzParse`,
+`FuzzParseLenient` and `FuzzUnmarshalText`, 19 for `FuzzScanCanonical`, 10 for
+`FuzzFormatRoundTrip`, 5 for `FuzzAppendDigits`, 6 for `FuzzFormatPattern`, and 4 each for
+`FuzzAddDays`, `FuzzLong` and `FuzzText`. `go test -run '^Fuzz' .` passed all 253 seeds on
+2026-10-18. No `testdata/fuzz` corpus is committed at the start of the phase.
 
 ## Checkpoint
 
