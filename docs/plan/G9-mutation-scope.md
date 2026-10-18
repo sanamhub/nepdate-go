@@ -134,13 +134,47 @@ B5 and B6 have no regression. The B6 change is an improvement, not a regression.
 
 ### G9-04 Negative controls
 For every gate path new in G9, delete a killing test, show the exact failure line, restore the test
-and show the gate passes. Cover patro and each file changed by G9-03. Repeat the core control if
-G9-02 or G9-03 changes the core baseline.
+and show the gate passes. The new paths are the core baseline after the switch change and the new
+patro baseline.
+
+The core control removes `FiscalYear(-2).Label`, the same test that failed the G8b ceiling. A first
+attempt removed `TestFoldEqual` and the Kelvin parse case, but the parse vectors cover the same
+branch, so all mutants stayed killed; that is redundancy in the suite, not a gate failure. The patro
+control removes every `patro` test file.
 
 AC:
 - Each negative control records the exact failure line and exit code.
-- Restored, the same gate prints `mutation-check: ok` or the package-specific ok line.
+- Restored, the same gate prints `mutation-check: ok`.
 - `ci: 8/8 gates passed`.
+
+Core control, `FiscalYear(-2).Label` removed, 510 killed, 12 not covered, exit 1:
+
+```
+mutation-check: survivor baseline differs in 2 keys:
+  fiscal.go ARITHMETIC_BASE NOT COVERED: 2, baseline 1 (higher count)
+  fiscal.go INVERT_NEGATIVES NOT COVERED: 1, new key
+run `go run ./tools/mutation-check -update` to accept the new baseline
+```
+
+Patro control, every `patro` test file removed, 0 killed, 24 not covered, exit 1:
+
+```
+mutation-check: test efficacy 0.00 % is below 99.50 %
+survivor baseline differs in 4 keys:
+  patro.go ARITHMETIC_BASE NOT COVERED: 8, new key
+  patro.go CONDITIONALS_BOUNDARY NOT COVERED: 5, new key
+  patro.go CONDITIONALS_NEGATION NOT COVERED: 9, new key
+  patro.go INVERT_NEGATIVES NOT COVERED: 2, new key
+run `go run ./tools/mutation-check -update` to accept the new baseline
+```
+
+The patro control exposed a gate bug: Gremlins sets `mutants_total` to the killed count, so a report
+with 0 killed and 24 not covered was rejected as "0 mutants" before the baseline ran. `checkReport`
+now counts the mutations in the report instead, and `TestHasMutations` covers an all-not-covered
+report.
+
+Restored, `go run ./tools/mutation-check -package=core -json core-switch-win.json` and
+`-package=patro -json patro-30.json` both print `mutation-check: ok`.
 
 ## Checkpoint
 

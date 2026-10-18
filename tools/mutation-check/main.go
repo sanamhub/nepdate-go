@@ -195,10 +195,21 @@ func checkReport(path string, threshold float64, update bool, baselinePath, pack
 	if err := json.Unmarshal(data, &rep); err != nil {
 		return fmt.Errorf("parse %s: %w", path, err)
 	}
-	if rep.Total == 0 {
-		return fmt.Errorf("gremlins reported 0 mutants in %s; check the package path and exclusions", path)
+	if !hasMutations(rep) {
+		return fmt.Errorf("gremlins reported no mutants in %s; check the package path and exclusions", path)
 	}
 	return summarize(os.Stdout, rep, threshold, update, baselinePath, packageName)
+}
+
+// hasMutations reports whether the report holds at least one mutant. Gremlins sets
+// mutants_total to the killed count, so it is 0 when every mutant is NOT COVERED.
+func hasMutations(rep report) bool {
+	for _, f := range rep.Files {
+		if len(f.Mutations) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // writef and writeln ignore write errors to the report writer. The caller writes to stdout or a

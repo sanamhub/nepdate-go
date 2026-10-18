@@ -217,6 +217,16 @@ func TestReadBaselineAcceptsCRLF(t *testing.T) {
 	}
 }
 
+func TestHasMutations(t *testing.T) {
+	if hasMutations(report{}) {
+		t.Fatal("empty report has mutants")
+	}
+	rep := report{Files: []file{{Name: "patro.go", Mutations: []mutation{{Status: "NOT COVERED"}}}}}
+	if !hasMutations(rep) {
+		t.Fatal("all-not-covered report was treated as empty")
+	}
+}
+
 func TestTargetFor(t *testing.T) {
 	core, err := targetFor("core")
 	if err != nil || core.Package != "nepdate" || core.Baseline != "tools/mutation-check/survivors.txt" {
