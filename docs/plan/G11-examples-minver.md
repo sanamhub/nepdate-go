@@ -101,6 +101,13 @@ AC:
 - `go test ./...` and `go vet ./...` pass.
 - No public API or production behaviour change.
 
+Result on 2026-10-18: 6 examples before, 51 after, 45 added. The new file `examples_test.go` holds
+35 core examples and `patro/examples_test.go` holds 10 patro examples; the six README examples are
+unchanged. Every one of the 16 functions and 16 types has an example, and the method examples cover
+the arithmetic, `Diff`, fiscal quarters, range iteration, `Short`, `Long`, `AppendShort`,
+`AppendDigits`, JSON marshal and unmarshal, and the `Info` query methods. `go test -run '^Example'`
+passes in both packages, and `TestREADMEQuickStart` still passes.
+
 ### G11-03 Example gate
 Extend gate 8 (docs) in `internal/ci`; do not add a gate number. The new check parses the non-test
 files of `nepdate` and `patro` for exported package-level functions and exported types, parses the
