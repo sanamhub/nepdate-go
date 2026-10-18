@@ -103,6 +103,35 @@ AC:
 - The baselines are updated with `-update`; the gates pass.
 - `ci: 8/8 gates passed`.
 
+Result: all 41 switch-case mutants are now scored and killed. The changes are if chains in
+`lenientTokens.date`, `foldEqual`, `lenientSeparator`, `appendToken` and `scanStrictLoop`. A small
+probe confirmed the cause: the same condition is `NOT COVERED` in a `switch` and `KILLED` as an
+`if`. No test was added; the existing suite kills every new mutant.
+
+| Metric | G8b final | G9-03 |
+|---|---:|---:|
+| killed | 471 | 512 |
+| lived | 0 | 0 |
+| not covered | 51 | 10 |
+| timed out | 0 | 0 |
+| test efficacy | 100.00 % | 100.00 % |
+| mutations coverage | 90.23 % | 98.08 % |
+| survivors | 51 | 10 |
+| elapsed | 409.5 s Windows | 578.5 s Windows, 244.9 s Linux |
+
+The remaining 10 are the same dispositions as G8: 4 `arith.go` constants, 3 `time.go` tzdata
+fallback, and 1 each in `errors.go`, `names.go` and `fiscal.go` that are non-viable.
+
+`benchstat` over 30 samples per binary, interleaved old and new on the same machine:
+
+| Benchmark | Old | New | Change |
+|---|---:|---:|---:|
+| B5/library=nepdate | 34.14 ns/date | 32.71 ns/date | ~ (p=0.836) |
+| B5/library=nepdate-string | 56.27 ns/date | 56.94 ns/date | ~ (p=0.542) |
+| B6/library=nepdate | 9.438 ns/date | 8.684 ns/date | -7.98 % (p=0.040) |
+
+B5 and B6 have no regression. The B6 change is an improvement, not a regression.
+
 ### G9-04 Negative controls
 For every gate path new in G9, delete a killing test, show the exact failure line, restore the test
 and show the gate passes. Cover patro and each file changed by G9-03. Repeat the core control if

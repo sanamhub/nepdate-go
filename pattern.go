@@ -55,20 +55,25 @@ func (d Date) AppendFormat(b []byte, pattern string, lang Lang) []byte {
 
 // appendToken writes a run of n letters c (y, M or d).
 func (d Date) appendToken(b []byte, c byte, n int, lang Lang) []byte {
-	switch {
-	case c == 'y' && n >= 4:
+	// The chain is an if, not a switch: coverage has no counter for a switch condition (G9-03).
+	if c == 'y' && n >= 4 {
 		return appendDigits(b, int(d.year), 4, lang)
-	case c == 'y':
-		return appendDigits(b, int(d.year)%100, 2, lang)
-	case c == 'M' && n >= 4:
-		return append(b, Month(d.month).Name(lang)...)
-	case c == 'M' && n == 3:
-		return append(b, Month(d.month).ShortName(lang)...)
-	case c == 'M':
-		return appendDigits(b, int(d.month), n, lang)
-	case n == 2: // dd
-		return appendDigits(b, int(d.day), 2, lang)
-	default: // d, ddd, dddd...: unpadded day
-		return appendDigits(b, int(d.day), 0, lang)
 	}
+	if c == 'y' {
+		return appendDigits(b, int(d.year)%100, 2, lang)
+	}
+	if c == 'M' && n >= 4 {
+		return append(b, Month(d.month).Name(lang)...)
+	}
+	if c == 'M' && n == 3 {
+		return append(b, Month(d.month).ShortName(lang)...)
+	}
+	if c == 'M' {
+		return appendDigits(b, int(d.month), n, lang)
+	}
+	if n == 2 { // dd
+		return appendDigits(b, int(d.day), 2, lang)
+	}
+	// d, ddd, dddd...: unpadded day
+	return appendDigits(b, int(d.day), 0, lang)
 }
