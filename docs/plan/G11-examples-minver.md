@@ -133,6 +133,24 @@ AC:
   `ci: 9/9 gates passed, 1 reduced (tests without -race)` and the tree is clean.
 - `golangci-lint` reports 0 issues and `actionlint` accepts the workflows.
 
+Result on 2026-10-18: `internal/ci/examples.go` adds `exampleGate` to gate 8. It finds 32 targets
+(16 functions and 16 types) and prints `ci: 32 exported functions and types have examples`. The
+allow-list is empty, with a comment that it stays empty while every target can print a fixed value;
+the unit tests exercise a non-empty allow-list, a stale entry, an unknown entry and an entry
+without a reason. `TestExampleTargetName` and the nine `TestExampleProblems` cases pass.
+
+Control: `NoExampleForG11` was added to a new `g11_control.go` with a doc comment. Gate 8 failed,
+exit 1:
+
+```
+ci: gate 8 (docs) failed: 1 example problems:
+  nepdate: function NoExampleForG11 has no Example function
+```
+
+The file was removed. Restored, gate 8 prints `ci: 32 exported functions and types have examples`
+and the run ends with `ci: 9/9 gates passed, 1 reduced (tests without -race)`. Go 1.24.13 reran
+`go test -count=1 ./...` and the consumer check after the gate change, both pass.
+
 ## Checkpoint
 
 Stop after G11-03. Report the commits, the real local `ci` line verbatim, the Go 1.24 result, the
