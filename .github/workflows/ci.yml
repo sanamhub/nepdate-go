@@ -63,7 +63,7 @@ jobs:
 
   mutation:
     # Gremlins on the hand-written core files; at most 4 workers. The gate fails below 99.5 %
-    # efficacy or above 51 survivors.
+    # efficacy or when a per-file survivor count in survivors.txt is higher, lower, new or missing.
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
