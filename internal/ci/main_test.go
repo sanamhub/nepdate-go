@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -130,5 +132,35 @@ func TestIsolationCheck(t *testing.T) {
 	}
 	if err := isolationCheck("", []byte("core"), []byte("patro without names")); err == nil {
 		t.Error("patro binary without the names passed")
+	}
+}
+
+func TestRunGatesCountsSkipsSeparately(t *testing.T) {
+	ok := func() error { return nil }
+	skip := func() error { return fmt.Errorf("%w: tool not on PATH", errSkipped) }
+	fail := func() error { return errors.New("boom") }
+
+	if code := runGates([]gate{{"a", ok}, {"b", skip}, {"c", ok}}); code != 0 {
+		t.Errorf("run with a skipped gate exited %d, want 0", code)
+	}
+	if code := runGates([]gate{{"a", ok}, {"b", skip}, {"c", fail}}); code != 1 {
+		t.Errorf("run with a failed gate exited %d, want 1", code)
+	}
+}
+
+func TestSummaryNamesSkippedGates(t *testing.T) {
+	cases := []struct {
+		passed, total int
+		skipped       []string
+		want          string
+	}{
+		{8, 8, nil, "ci: 8/8 gates passed"},
+		{6, 8, []string{"golangci-lint", "govulncheck"}, "ci: 6/8 gates passed, 2 skipped (golangci-lint, govulncheck)"},
+		{2, 8, []string{"golangci-lint"}, "ci: 2/8 gates passed, 1 skipped (golangci-lint)"},
+	}
+	for _, c := range cases {
+		if got := summary(c.passed, c.total, c.skipped); got != c.want {
+			t.Errorf("summary(%d, %d, %v) = %q, want %q", c.passed, c.total, c.skipped, got, c.want)
+		}
 	}
 }
