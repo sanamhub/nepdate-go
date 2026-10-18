@@ -1,0 +1,3 @@
+# Gremlins v0.6.0 survivor baseline for package patro.
+# Columns: file, mutator type, status, count (tab separated).
+# Line numbers are not part of the key. Regenerate with -update for the selected package.

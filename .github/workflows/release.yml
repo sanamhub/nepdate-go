@@ -83,8 +83,8 @@ jobs:
         run: go run ./tools/consumer-check -negative
 
   mutation:
-    # The same mutation gate as ci.yml, so a tag cannot release a commit whose survivor baseline
-    # does not hold. Go is pinned to the version the baseline was measured with.
+    # The same mutation gate as ci.yml, so a tag cannot release a commit whose survivor baselines
+    # do not hold. Go is pinned to the version the baselines were measured with.
     needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -96,8 +96,10 @@ jobs:
         with:
           go-version: "1.27.1"
           cache: false
-      - name: Mutation gate
-        run: go run ./tools/mutation-check -workers=4
+      - name: Core mutation gate
+        run: go run ./tools/mutation-check -package=core -workers=4
+      - name: Patro mutation gate
+        run: go run ./tools/mutation-check -package=patro -workers=4
 
   lint:
     needs: preflight
@@ -116,14 +118,20 @@ jobs:
           version: v2.14.0
 
   govulncheck:
+    # The golang/govulncheck-action installs @latest, so the scanner is pinned here instead.
     needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: golang/govulncheck-action@032d45514ae346b1db93c04b0c90b841c370344f # v1.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version-input: "1.27"
-          go-package: ./...
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27"
+          cache: false
+      - name: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
   release:
     # A dispatched run stops at preflight and CI; the release and proxy jobs only run for a tag.

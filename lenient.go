@@ -134,8 +134,9 @@ func (t *lenientTokens) date(s string) (Date, error) {
 		nums[nNums] = tok
 		nNums++
 	}
-	switch {
-	case nMonths == 1 && nNums == 2:
+	// An if chain, not a switch: Gremlins finds no coverage block for a case expression, so it
+	// cannot test one (G9-03).
+	if nMonths == 1 && nNums == 2 {
 		a, b := nums[0], nums[1]
 		if b.digits == 4 {
 			a, b = b, a
@@ -144,18 +145,17 @@ func (t *lenientTokens) date(s string) (Date, error) {
 			return Date{}, parseError(s, Ambiguous)
 		}
 		return newFromInts(a.value, month, b.value)
-	case nMonths == 0 && nNums == 3:
-		switch {
-		case nums[0].digits == 4:
-			return newFromInts(nums[0].value, nums[1].value, nums[2].value)
-		case nums[2].digits == 4:
-			return newFromInts(nums[2].value, nums[1].value, nums[0].value)
-		default:
-			return Date{}, parseError(s, Ambiguous)
-		}
-	default:
-		return Date{}, parseError(s, Unrecognized)
 	}
+	if nMonths == 0 && nNums == 3 {
+		if nums[0].digits == 4 {
+			return newFromInts(nums[0].value, nums[1].value, nums[2].value)
+		}
+		if nums[2].digits == 4 {
+			return newFromInts(nums[2].value, nums[1].value, nums[0].value)
+		}
+		return Date{}, parseError(s, Ambiguous)
+	}
+	return Date{}, parseError(s, Unrecognized)
 }
 
 // The Kelvin sign U+212A is the 3 bytes 0xE2 0x84 0xAA.
@@ -174,11 +174,11 @@ func foldEqual(token, entry string) bool {
 	for i := 0; i < len(token); {
 		c := token[i]
 		width := 1
-		switch {
-		case c >= 'A' && c <= 'Z':
+		// An if chain, not a switch, so Gremlins can test both conditions (G9-03).
+		if c >= 'A' && c <= 'Z' {
 			c += 'a' - 'A'
-		case c == kelvinLead && i+2 < len(token) && token[i+1] == kelvinSecond &&
-			token[i+2] == kelvinThird:
+		} else if c == kelvinLead && i+2 < len(token) && token[i+1] == kelvinSecond &&
+			token[i+2] == kelvinThird {
 			c, width = 'k', 3
 		}
 		if j >= len(entry) || entry[j] != c {
@@ -204,12 +204,15 @@ func digitAt(s string, i int) (value, width int) {
 // lenientSeparator returns the byte width of a separator at s[i], or 0: the strict
 // separators except '.', plus ','.
 func lenientSeparator(s string, i int) int {
-	switch c := s[i]; {
-	case c == ',':
+	// Separate ifs, not a switch, so Gremlins can test each condition (G9-03).
+	c := s[i]
+	if c == ',' {
 		return 1
-	case c != '.' && isStrictSeparator(c):
+	}
+	if c != '.' && isStrictSeparator(c) {
 		return 1
-	case devaAt(s, i) == devaDanda:
+	}
+	if devaAt(s, i) == devaDanda {
 		return 3
 	}
 	return 0

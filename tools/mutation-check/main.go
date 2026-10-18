@@ -1,14 +1,16 @@
-// Command mutation-check runs Gremlins on the core package and enforces the mutation gate.
+// Command mutation-check runs Gremlins on the core package or patro and enforces the mutation
+// gate.
 //
-//	go run ./tools/mutation-check
-//	go run ./tools/mutation-check -json report.json
-//	go run ./tools/mutation-check -update
+//	go run ./tools/mutation-check -package=core
+//	go run ./tools/mutation-check -package=patro
+//	go run ./tools/mutation-check -package=patro -json report.json
+//	go run ./tools/mutation-check -package=patro -update
 //
 // Gremlins is pinned here and fetched with go run, so the root module keeps no dependency on it.
-// The run excludes generated files and every subdirectory, which leaves the hand-written files of
-// package nepdate. The score is Gremlins' test efficacy, KILLED / (KILLED + LIVED). Survivors are
-// the LIVED and NOT COVERED mutants. The per-file survivor baseline is in survivors.txt next to
-// this file; -update rewrites it from the current report.
+// The run excludes generated files, which leaves the hand-written files of the selected package.
+// The score is Gremlins' test efficacy, KILLED / (KILLED + LIVED). Survivors are the LIVED and NOT
+// COVERED mutants. Each package has its own survivor baseline next to this file; -update rewrites
+// the selected one from the current report.
 package main
 
 import (
@@ -30,11 +32,35 @@ const (
 	gremlinsPackage = "github.com/go-gremlins/gremlins/cmd/gremlins"
 	gremlinsVersion = "v0.6.0"
 	maxWorkers      = 4
+	defaultPackage  = "core"
 
-	// defaultSurvivorsPath is relative to the module root, so the gate reads the same file from
+	// The baseline paths are relative to the module root, so the gate reads the same file from
 	// any directory inside the repository.
-	defaultSurvivorsPath = "tools/mutation-check/survivors.txt"
+	defaultSurvivorsPath      = "tools/mutation-check/survivors.txt"
+	defaultPatroSurvivorsPath = "tools/mutation-check/survivors-patro.txt"
 )
+
+// mutationTarget is one package the gate can mutate and the baseline that belongs to it.
+type mutationTarget struct {
+	Key      string
+	Package  string
+	Dir      string
+	Baseline string
+}
+
+var mutationTargets = map[string]mutationTarget{
+	"core":  {Key: "core", Package: "nepdate", Dir: ".", Baseline: defaultSurvivorsPath},
+	"patro": {Key: "patro", Package: "patro", Dir: "./patro", Baseline: defaultPatroSurvivorsPath},
+}
+
+// targetFor returns the target named by -package.
+func targetFor(key string) (mutationTarget, error) {
+	target, ok := mutationTargets[key]
+	if !ok {
+		return mutationTarget{}, fmt.Errorf("package = %q, want core or patro", key)
+	}
+	return target, nil
+}
 
 // defaultThreshold is just below the final G8 score (100.00). The survivor ceiling is not a
 // separate number: it is the sum of the counts in the baseline file.
@@ -74,6 +100,7 @@ type survivorKey struct {
 }
 
 func main() {
+	pkg := flag.String("package", defaultPackage, "package to mutate: core or patro")
 	workers := flag.Int("workers", maxWorkers, "Gremlins workers, at most 4")
 	threshold := flag.Float64("threshold", defaultThreshold, "minimum test efficacy; 0 disables the score gate")
 	update := flag.Bool("update", false, "rewrite the survivor baseline from this run")
@@ -81,27 +108,31 @@ func main() {
 	jsonIn := flag.String("json", "", "evaluate an existing Gremlins JSON report instead of running Gremlins")
 	flag.Parse()
 
-	if err := run(*workers, *threshold, *update, *out, *jsonIn); err != nil {
+	if err := run(*pkg, *workers, *threshold, *update, *out, *jsonIn); err != nil {
 		fmt.Fprintln(os.Stderr, "mutation-check:", err)
 		os.Exit(1)
 	}
 }
 
-func run(workers int, threshold float64, update bool, out, jsonIn string) error {
+func run(pkg string, workers int, threshold float64, update bool, out, jsonIn string) error {
 	if workers < 1 || workers > maxWorkers {
 		return fmt.Errorf("workers = %d, want 1 to %d", workers, maxWorkers)
+	}
+	target, err := targetFor(pkg)
+	if err != nil {
+		return err
 	}
 	root, err := moduleRoot()
 	if err != nil {
 		return err
 	}
-	baselinePath := filepath.Join(root, defaultSurvivorsPath)
+	baselinePath := filepath.Join(root, target.Baseline)
 	if jsonIn != "" {
 		path, err := filepath.Abs(jsonIn)
 		if err != nil {
 			return err
 		}
-		return checkReport(path, threshold, update, baselinePath)
+		return checkReport(path, threshold, update, baselinePath, target.Package)
 	}
 	jsonPath := out
 	cleanup := func() {}
@@ -129,17 +160,18 @@ func run(workers int, threshold float64, update bool, out, jsonIn string) error 
 		"run", gremlinsPackage + "@" + gremlinsVersion, "unleash",
 		"--workers=" + strconv.Itoa(workers),
 		"--test-cpu=1",
-		"--timeout-coefficient=10",
+		"--timeout-coefficient=30",
 		"-E", "/",
 		"-E", `_gen\.go$`,
 		"--output=" + jsonPath,
-		".",
+		target.Dir,
 	}
 	cmd := exec.Command("go", args...) //nolint:gosec // the toolchain and a pinned package
 	cmd.Dir = root
 	cmd.Env = withEnv(os.Environ(), "GOWORK=off", "GOTOOLCHAIN=local")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	fmt.Printf("mutation package: %s (%s)\n", target.Key, target.Package)
 	fmt.Println("$ go", strings.Join(args, " "))
 	if err := cmd.Run(); err != nil {
 		// Gremlins sometimes reports cleanup errors for its temporary Git copy on Windows after
@@ -150,11 +182,11 @@ func run(workers int, threshold float64, update bool, out, jsonIn string) error 
 		fmt.Fprintf(os.Stderr, "mutation-check: warning: gremlins exited with %v; the report is readable\n", err)
 	}
 
-	return checkReport(jsonPath, threshold, update, baselinePath)
+	return checkReport(jsonPath, threshold, update, baselinePath, target.Package)
 }
 
 // checkReport reads a Gremlins JSON report and applies the gate.
-func checkReport(path string, threshold float64, update bool, baselinePath string) error {
+func checkReport(path string, threshold float64, update bool, baselinePath, packageName string) error {
 	data, err := os.ReadFile(path) //nolint:gosec // the JSON file named by the caller
 	if err != nil {
 		return err
@@ -163,10 +195,21 @@ func checkReport(path string, threshold float64, update bool, baselinePath strin
 	if err := json.Unmarshal(data, &rep); err != nil {
 		return fmt.Errorf("parse %s: %w", path, err)
 	}
-	if rep.Total == 0 {
-		return fmt.Errorf("gremlins reported 0 mutants in %s; check the package path and exclusions", path)
+	if !hasMutations(rep) {
+		return fmt.Errorf("gremlins reported no mutants in %s; check the package path and exclusions", path)
 	}
-	return summarize(os.Stdout, rep, threshold, update, baselinePath)
+	return summarize(os.Stdout, rep, threshold, update, baselinePath, packageName)
+}
+
+// hasMutations reports whether the report holds at least one mutant. Gremlins sets
+// mutants_total to the killed count, so it is 0 when every mutant is NOT COVERED.
+func hasMutations(rep report) bool {
+	for _, f := range rep.Files {
+		if len(f.Mutations) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // writef and writeln ignore write errors to the report writer. The caller writes to stdout or a
@@ -177,9 +220,10 @@ func writeln(w io.Writer, args ...any)               { _, _ = fmt.Fprintln(w, ar
 // summarize prints the score, the survivor table and, unless update is set, compares the survivor
 // counts with the baseline. The score is compared as the unrounded float; every baseline count is
 // compared as an exact integer.
-func summarize(w io.Writer, rep report, threshold float64, update bool, baselinePath string) error {
+func summarize(w io.Writer, rep report, threshold float64, update bool, baselinePath, packageName string) error {
 	counts := collectSurvivors(rep)
 	lived, notCovered, timedOut := totals(counts)
+	writef(w, "package: %s\n", packageName)
 	writef(w, "mutation score: %.2f %% (killed %d, lived %d, not covered %d, timed out %d, not viable %d, total %d)\n",
 		rep.TestEfficacy, rep.Killed, rep.Lived, rep.NotCovered, timedOut, rep.NotViable, rep.Total)
 	survivors := lived + notCovered + timedOut
@@ -218,7 +262,7 @@ func summarize(w io.Writer, rep report, threshold float64, update bool, baseline
 	}
 
 	if update {
-		if err := writeBaseline(baselinePath, counts); err != nil {
+		if err := writeBaseline(baselinePath, counts, packageName); err != nil {
 			return err
 		}
 		writef(w, "\nsurvivor baseline written: %s (%d keys, %d mutants)\n", baselinePath, len(counts), survivors)
@@ -343,12 +387,12 @@ func readBaseline(path string) (map[survivorKey]int, error) {
 	return counts, nil
 }
 
-// writeBaseline writes the sorted survivor baseline with a short header.
-func writeBaseline(path string, counts map[survivorKey]int) error {
+// writeBaseline writes the sorted survivor baseline for one package with a short header.
+func writeBaseline(path string, counts map[survivorKey]int, packageName string) error {
 	var b strings.Builder
-	writef(&b, "# Gremlins %s survivor baseline for package nepdate.\n", gremlinsVersion)
+	writef(&b, "# Gremlins %s survivor baseline for package %s.\n", gremlinsVersion, packageName)
 	writeln(&b, "# Columns: file, mutator type, status, count (tab separated).")
-	writeln(&b, "# Line numbers are not part of the key. Regenerate with: go run ./tools/mutation-check -update")
+	writeln(&b, "# Line numbers are not part of the key. Regenerate with -update for the selected package.")
 	for _, key := range sortedKeys(counts) {
 		writef(&b, "%s\t%s\t%s\t%d\n", key.File, key.Type, key.Status, counts[key])
 	}

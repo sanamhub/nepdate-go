@@ -33,7 +33,7 @@ func sampleReport() report {
 func baselineFile(t *testing.T, rep report) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "survivors.txt")
-	if err := writeBaseline(path, collectSurvivors(rep)); err != nil {
+	if err := writeBaseline(path, collectSurvivors(rep), "nepdate"); err != nil {
 		t.Fatalf("write baseline: %v", err)
 	}
 	return path
@@ -42,7 +42,7 @@ func baselineFile(t *testing.T, rep report) string {
 func runSummary(t *testing.T, rep report, threshold float64, update bool, baselinePath string) (string, error) {
 	t.Helper()
 	var buf bytes.Buffer
-	err := summarize(&buf, rep, threshold, update, baselinePath)
+	err := summarize(&buf, rep, threshold, update, baselinePath, "nepdate")
 	return buf.String(), err
 }
 
@@ -105,7 +105,7 @@ func TestBaselineLowerCountFails(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "survivors.txt")
 	counts := collectSurvivors(sampleReport())
 	counts[survivorKey{File: "parse.go", Type: "CONDITIONALS_NEGATION", Status: "LIVED"}] = 2
-	if err := writeBaseline(path, counts); err != nil {
+	if err := writeBaseline(path, counts, "nepdate"); err != nil {
 		t.Fatalf("write baseline: %v", err)
 	}
 	_, err := runSummary(t, sampleReport(), 0, false, path)
@@ -124,12 +124,12 @@ func TestBaselineLowerCountFails(t *testing.T) {
 
 func TestBaselineMissingKeyFails(t *testing.T) {
 	path := baselineFile(t, sampleReport())
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // a baseline this test wrote in t.TempDir()
 	if err != nil {
 		t.Fatal(err)
 	}
 	data = append(data, []byte("fiscal.go\tARITHMETIC_BASE\tNOT COVERED\t1\n")...)
-	if err := os.WriteFile(path, data, 0o644); err != nil {
+	if err := os.WriteFile(path, data, 0o600); err != nil { //nolint:gosec // a baseline this test wrote in t.TempDir()
 		t.Fatal(err)
 	}
 	_, err = runSummary(t, sampleReport(), 0, false, path)
@@ -217,26 +217,61 @@ func TestReadBaselineAcceptsCRLF(t *testing.T) {
 	}
 }
 
-// TestCommittedBaselineIsCanonical keeps survivors.txt in the exact form -update writes, so a hand
-// edit (unsorted lines, spaces, a changed header) shows up here rather than in a 7 minute run.
-func TestCommittedBaselineIsCanonical(t *testing.T) {
-	counts, err := readBaseline("survivors.txt")
-	if err != nil {
-		t.Fatalf("committed baseline: %v", err)
+func TestHasMutations(t *testing.T) {
+	if hasMutations(report{}) {
+		t.Fatal("empty report has mutants")
 	}
-	committed, err := os.ReadFile("survivors.txt")
-	if err != nil {
-		t.Fatal(err)
+	rep := report{Files: []file{{Name: "patro.go", Mutations: []mutation{{Status: "NOT COVERED"}}}}}
+	if !hasMutations(rep) {
+		t.Fatal("all-not-covered report was treated as empty")
 	}
-	path := filepath.Join(t.TempDir(), "survivors.txt")
-	if err := writeBaseline(path, counts); err != nil {
-		t.Fatal(err)
+}
+
+func TestTargetFor(t *testing.T) {
+	core, err := targetFor("core")
+	if err != nil || core.Package != "nepdate" || core.Baseline != "tools/mutation-check/survivors.txt" {
+		t.Fatalf("core target = %+v, %v", core, err)
 	}
-	canonical, err := os.ReadFile(path) //nolint:gosec // a file this test just wrote
-	if err != nil {
-		t.Fatal(err)
+	patro, err := targetFor("patro")
+	if err != nil || patro.Package != "patro" || patro.Baseline != "tools/mutation-check/survivors-patro.txt" {
+		t.Fatalf("patro target = %+v, %v", patro, err)
 	}
-	if !bytes.Equal(bytes.ReplaceAll(committed, []byte("\r\n"), []byte("\n")), canonical) {
-		t.Errorf("survivors.txt is not in canonical form; regenerate it with -update:\n%s", committed)
+	if _, err := targetFor("benchmarks"); err == nil {
+		t.Fatal("targetFor accepted an unknown package")
+	}
+}
+
+// TestCommittedBaselinesAreCanonical keeps both baselines in the exact form -update writes, so a
+// hand edit (unsorted lines, spaces, a changed header) shows up here rather than in a mutation run.
+func TestCommittedBaselinesAreCanonical(t *testing.T) {
+	cases := []struct {
+		path        string
+		packageName string
+	}{
+		{"survivors.txt", "nepdate"},
+		{"survivors-patro.txt", "patro"},
+	}
+	for _, c := range cases {
+		t.Run(c.path, func(t *testing.T) {
+			counts, err := readBaseline(c.path)
+			if err != nil {
+				t.Fatalf("committed baseline: %v", err)
+			}
+			committed, err := os.ReadFile(c.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(t.TempDir(), c.path)
+			if err := writeBaseline(path, counts, c.packageName); err != nil {
+				t.Fatal(err)
+			}
+			canonical, err := os.ReadFile(path) //nolint:gosec // a file this test just wrote
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(bytes.ReplaceAll(committed, []byte("\r\n"), []byte("\n")), canonical) {
+				t.Errorf("%s is not in canonical form; regenerate it with -update:\n%s", c.path, committed)
+			}
+		})
 	}
 }

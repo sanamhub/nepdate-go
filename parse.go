@@ -68,23 +68,24 @@ func scanStrictLoop[T text](s T) (Date, ParseErrorKind, error) {
 	digits := 0 // digits in the current group
 	for i := 0; i < len(s); {
 		c := s[i]
+		third := devaAt(s, i)
 		var d int
-		switch third := devaAt(s, i); {
-		case c >= '0' && c <= '9':
+		//nolint:gocritic // an if chain, not a switch, so Gremlins can test each condition (G9-03)
+		if c >= '0' && c <= '9' {
 			d = int(c - '0')
 			i++
-		case third >= devaZero && third <= devaNine:
+		} else if third >= devaZero && third <= devaNine {
 			d = int(third - devaZero)
 			i += 3
-		case third == devaDanda:
+		} else if third == devaDanda {
 			inGroup = false
 			i += 3
 			continue
-		case isStrictSeparator(c):
+		} else if isStrictSeparator(c) {
 			inGroup = false
 			i++
 			continue
-		default:
+		} else {
 			return Date{}, InvalidCharacter, nil
 		}
 		if !inGroup {
