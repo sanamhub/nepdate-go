@@ -1,0 +1,16 @@
+# Gremlins v0.6.0 survivor baseline for package nepdate.
+# Columns: file, mutator type, status, count (tab separated).
+# Line numbers are not part of the key. Regenerate with: go run ./tools/mutation-check -update
+arith.go	ARITHMETIC_BASE	NOT COVERED	3
+arith.go	INVERT_NEGATIVES	NOT COVERED	1
+errors.go	ARITHMETIC_BASE	NOT COVERED	1
+fiscal.go	ARITHMETIC_BASE	NOT COVERED	1
+lenient.go	ARITHMETIC_BASE	NOT COVERED	3
+lenient.go	CONDITIONALS_BOUNDARY	NOT COVERED	3
+lenient.go	CONDITIONALS_NEGATION	NOT COVERED	15
+names.go	ARITHMETIC_BASE	NOT COVERED	1
+parse.go	CONDITIONALS_BOUNDARY	NOT COVERED	4
+parse.go	CONDITIONALS_NEGATION	NOT COVERED	5
+pattern.go	CONDITIONALS_BOUNDARY	NOT COVERED	2
+pattern.go	CONDITIONALS_NEGATION	NOT COVERED	9
+time.go	ARITHMETIC_BASE	NOT COVERED	3

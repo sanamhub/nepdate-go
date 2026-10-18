@@ -105,12 +105,17 @@ counter. A manual mutation of a representative switch case from each file fails 
 the evidence that the tests kill the behavior even though Gremlins cannot score it.
 
 ### G8-04 Gate
-`tools/mutation-check` enforces both numbers:
+`tools/mutation-check` enforces:
 
-- `test_efficacy` is compared as an unrounded float against a threshold set just below the final
-  score (99.5 % against 100.00 %).
-- `LIVED + NOT COVERED + TIMED OUT` is compared as an exact integer against a survivor ceiling
-  (51, the final count).
+- `test_efficacy` as an unrounded float against 99.5 %, just below the final 100.00 %.
+- Every `(file, mutator type, status)` count in `tools/mutation-check/survivors.txt` exactly. A
+  higher, lower, new or missing count fails, and the output names the key. Line and column are not
+  in the key, so an edit elsewhere in the file does not churn the baseline.
+- `-update` rewrites the sorted baseline. It is the only way to accept a new survivor or record a
+  kill.
+
+There is no separate survivor total. The sum of the baseline counts is the only survivor number,
+so a new survivor cannot hide behind a killed one.
 
 The K7 lesson: a rounded percentage can hide a regression. 95.4 % must fail a 96 % gate, and one
 extra survivor must fail even when the rounded percentage stays the same. The unit test
@@ -120,31 +125,98 @@ The `mutation` job in `.github/workflows/ci.yml` runs
 `go run ./tools/mutation-check -workers=4` with a 40-minute timeout. The runner rejects a worker
 count above 4, and Gremlins also gets `--test-cpu=1`.
 
-Negative control: removing the `FiscalYear(-2).Label` assertion turns the two `fiscal.go:104`
-mutants from KILLED to NOT COVERED. The score stays at 100.00 %, because a not-covered mutant is
-not a lived mutant, but the survivor count becomes 53 and the gate fails on the ceiling:
+Negative control: removing the `FiscalYear(-2).Label` assertion turns two killed `fiscal.go:104`
+mutants into survivors. The score stays at 100.00 %, because a not-covered mutant is not a lived
+mutant, but the baseline check fails on two keys:
 
 ```
-mutation score: 100.00 % (killed 469, lived 0, not covered 53, timed out 0, not viable 0, total 469)
-survivors: 53 (lived 0, not covered 53, timed out 0)
-mutation-check: survivors 53 exceed the ceiling of 51
+mutation-check: survivor baseline differs in 2 keys:
+  fiscal.go ARITHMETIC_BASE NOT COVERED: 2, baseline 1 (higher count)
+  fiscal.go INVERT_NEGATIVES NOT COVERED: 1, new key
+run `go run ./tools/mutation-check -update` to accept the new baseline
 ```
 
-Restored, `go run ./tools/mutation-check -json E:/temp/g8/final.json` prints
-`mutation-check: ok`. A doctored copy of the report with `test_efficacy` set to 95.9 prints
+The report for that run was 469 killed, 0 lived, 53 not covered, 0 timed out, efficacy 100.00 %.
+Restored, `go run ./tools/mutation-check -json E:/temp/g8/final.json` prints `mutation-check: ok`.
+A doctored copy of the report with `test_efficacy` set to 95.9 prints
 `mutation-check: test efficacy 95.90 % is below 99.50 %` and exits 1. The two checks cover
-different regressions: the score catches a covered mutant that stops being killed, and the ceiling
-catches a test that stops covering a line.
+different regressions: the score catches a covered mutant that stops being killed, and the baseline
+catches a test that stops covering a line or a mutant type that starts surviving.
 
 The `mutation` job is a separate job in `ci.yml`, next to `ci`, `consumer`, `lint` and
 `govulncheck`. The eight gates inside `internal/ci` are unchanged, so the `ci:` line stays 8/8.
 
 AC:
-- The gate fails below the score threshold and above the survivor ceiling.
+- The gate fails below the score threshold and on any higher, lower, new or missing baseline line.
+- `-update` rewrites the baseline; no `-max-survivors` flag remains.
 - The CI job runs the gate with at most 4 workers.
-- Negative control: delete one test that kills a mutant, show the gate fails, restore the test and
-  show it passes.
+- Negative control: delete one test that kills a mutant, show the per-file failure, restore the
+  test and show it passes.
 - `go run ./internal/ci` still ends with `ci: 8/8 gates passed`.
+
+## G8b: Gate hardening
+
+G8 merged at cce831f. The single total ceiling let a newly uncovered mutant hide behind a newly
+killed one, and the Linux survivor set was unmeasured.
+
+### G8b-01 Per-file survivor baseline
+`survivors.txt` has one line per file, mutator type and status, sorted, with the count last. The
+header says how to regenerate it. The gate uses `-update` to rewrite the file; `-max-survivors` is
+gone, so the file is the only source of the survivor total.
+
+Tests cover a higher count, a new key, a lower count, a missing key, an exact match and the update
+path. The negative control above is the higher and new key case.
+
+AC:
+- The gate fails on a higher, lower, new or missing key and prints the key and both counts.
+- `-update` rewrites the file sorted, with line numbers absent from the key.
+- The exact baseline passes, and the score gate still fails below 99.5 %.
+- `ci: 8/8 gates passed`.
+
+### G8b-02 Linux baseline
+GitHub CI cannot run because the repository has no remote. The Linux run is a clean clone of
+`feat/G8b-mutation-gate` at 0eafbed on WSL Ubuntu 26.04, Go 1.27.1 linux/amd64, four workers. The
+Go toolchain, module cache and build cache are inside the WSL filesystem (`/home/sanam/g8b-go` and
+`/home/sanam/g8b-cache`), not on a Windows drive. The clone is `/home/sanam/g8b-clone`.
+
+| Run | Killed | Lived | Not covered | Timed out | Test efficacy | Mutation coverage | Survivors | Elapsed |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Windows | 471 | 0 | 51 | 0 | 100.00 % | 90.23 % | 51 | 409.5 s |
+| Linux | 471 | 0 | 51 | 0 | 100.00 % | 90.23 % | 51 | 207.6 s |
+
+The 13 baseline keys and all counts are identical on both platforms. File names are normalized to
+slash form in the runner, and `Asia/Kathmandu` loads from the system zone database on both, so the
+fallback at `time.go:47` stays uncovered. One baseline serves both platforms.
+
+The first WSL attempt put the clone, toolchain and module cache on `/mnt/d`. Each mutant rebuild
+read them over 9p and the run was too slow to finish. Moving them inside the distro made the same
+run finish in 207.6 s. The table above uses the in-distro run.
+
+AC:
+- The Linux run is a clean clone of the branch, four workers.
+- The two raw summaries are recorded.
+- The survivor set is compared with Windows and the baseline is platform-neutral, or a difference
+  is explained.
+
+### G8b-03 Release rule
+A tag is only made from a `main` commit whose `ci` run, including the `mutation` job, is green.
+The same sentence is in `docs/runbooks/release.md`.
+
+Review follow-up: the rule was a manual check. `release.yml` now has its own `mutation` job, and
+the `release` job needs it next to `ci`, `lint`, `govulncheck` and `consumer`, so the workflow
+enforces the rule. Both mutation jobs pin Go 1.27.1, the version the baseline was measured with,
+because a toolchain patch can move coverage mapping; a Go bump re-runs `-update` in the same PR.
+
+No ADR is added. ADR-0004 lists gates 1 to 6 and ADR-0006 adds gates 7 and 8. The mutation job is
+outside `internal/ci`, so neither gate list changes. ADR-0005 already says tags are made on `main`
+and the release workflow runs full CI. A new ADR would repeat a process rule without recording a
+changed decision.
+
+AC:
+- The plan and `docs/runbooks/release.md` state the release rule.
+- The mutation job remains outside `internal/ci`; no ADR is added because the gate list is
+  unchanged.
+- `ci: 8/8 gates passed`.
 
 ## Out of scope
 

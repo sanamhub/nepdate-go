@@ -3,7 +3,8 @@
 //	go run ./internal/ci                       run the gates
 //	go run ./internal/ci release-check v0.1.0  check CHANGELOG.md has a dated 0.1.0 section
 //
-// The last line is always "ci: <passed>/<total> gates passed".
+// The last line is always "ci: <passed>/<total> gates passed", followed by ", <n> skipped (<names>)"
+// when an optional tool is missing. A skipped gate is never counted as passed.
 package main
 
 import (
@@ -64,19 +65,39 @@ func gates() []gate {
 	}
 }
 
+// errSkipped marks a gate that did not run. runGates reports it as skipped, not passed.
+var errSkipped = errors.New("gate skipped")
+
 func runGates(gs []gate) int {
 	passed := 0
+	var skipped []string
 	for i, g := range gs {
 		fmt.Printf("ci: gate %d/%d: %s\n", i+1, len(gs), g.name)
-		if err := g.run(); err != nil {
+		err := g.run()
+		switch {
+		case errors.Is(err, errSkipped):
+			fmt.Printf("ci: warning: gate %d (%s) skipped: %v\n", i+1, g.name, err)
+			skipped = append(skipped, g.name)
+		case err != nil:
 			fmt.Fprintf(os.Stderr, "ci: gate %d (%s) failed: %v\n", i+1, g.name, err)
-			fmt.Printf("ci: %d/%d gates passed\n", passed, len(gs))
+			fmt.Println(summary(passed, len(gs), skipped))
 			return 1
+		default:
+			passed++
 		}
-		passed++
 	}
-	fmt.Printf("ci: %d/%d gates passed\n", passed, len(gs))
+	fmt.Println(summary(passed, len(gs), skipped))
 	return 0
+}
+
+// summary is the last line of a run. It names the skipped gates so a partial run never reads as a
+// full pass.
+func summary(passed, total int, skipped []string) string {
+	line := fmt.Sprintf("ci: %d/%d gates passed", passed, total)
+	if len(skipped) > 0 {
+		line += fmt.Sprintf(", %d skipped (%s)", len(skipped), strings.Join(skipped, ", "))
+	}
+	return line
 }
 
 // command runs name with args, printing the command line, with output going to the terminal.
@@ -103,11 +124,10 @@ func output(name string, args ...string) (string, error) {
 }
 
 // optional runs a tool that CI always installs but a developer machine may not have. A missing
-// tool counts as passed, with a warning.
+// tool skips the gate; runGates reports it as skipped, not passed.
 func optional(name string, args ...string) error {
 	if _, err := exec.LookPath(name); err != nil {
-		fmt.Printf("ci: warning: %s not on PATH, gate skipped (CI always runs it)\n", name)
-		return nil
+		return fmt.Errorf("%w: %s not on PATH (CI runs it in its own job)", errSkipped, name)
 	}
 	return command(name, args...)
 }
