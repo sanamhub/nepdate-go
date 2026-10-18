@@ -136,6 +136,12 @@ AC:
 - `go run ./internal/ci` passes and the docs gate accepts the new page.
 - No tag, remote or repository setting changes.
 
+Result on 2026-10-18: `docs/release/0.1.0-notes.md` holds the candidate notes under
+`## [0.1.0] - 2026-10-18`. It merges the initial 0.1.0 features with the two `[Unreleased]` additions
+and the parse fast-path change, and says that `CHANGELOG.md`, `go.mod` and the tag are untouched.
+The docs gate accepted the page and the full run kept the line
+`ci: 9/9 gates passed, 1 reduced (tests without -race)`.
+
 ## Checkpoint
 
 Stop after G12-04. Report the commits, the real local `ci` line verbatim, the `data-status` output
