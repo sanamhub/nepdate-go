@@ -87,15 +87,21 @@ at the end and "new this run" is what this run added. No target wrote a file und
 | `FuzzUnmarshalText` | 509,976 | 82 | 3 | 0 |
 | **Total** | **6,629,159** | | **52** | **0** |
 
-The first 30 s run, before the cache existed, reported 7,329,831 execs and 186 new entries. It also
-exposed a reporting bug: the tool summed the repeated cumulative `new interesting` value and printed
-44 new entries for `FuzzAddDays` against 4 actual. `parseStats` now keeps the last value, and
+The first 30 s run, with a mostly empty fuzz cache, executed 7,329,831 times and added 186 entries
+(counted from the progress lines). It also exposed a reporting bug: the tool summed the repeated
+cumulative `new interesting` value and printed 44 new entries for `FuzzAddDays` against 4 actual. `parseStats` now keeps the last value, and
 `TestParseStatsKeepsCumulativeCountOnce` covers the repeated line. The rerun above uses the fixed
 tool.
 
 `go test -list` found 10 targets with no duplicate. `actionlint` accepted `ci.yml`, `fuzz.yml` and
 `release.yml`. Fuzzing is not in `ci.yml`; `fuzz.yml` runs weekly and on dispatch, and `release.yml`
 runs the same 3-minute budget before `release`.
+
+A synthetic `FuzzCrash` in a temporary worktree, seeded with `"seed"` and panicking on any input
+containing `~`, was found in 0.52 s. The tool exited 1 and named
+`testdata/fuzz/FuzzCrash/db7ae63e0377da75`; the worktree was removed. A first attempt panicked on
+its own seed, so Go did not write a file and the tool reported a plain failure. That is the right
+behaviour: a seed failure is already a regression test.
 
 ### G10-03 API compatibility
 Commit `testdata/api/nepdate.snapshot` and `testdata/api/patro.snapshot`, the apidiff export data
@@ -146,6 +152,45 @@ AC:
   is the failing step.
 - Restored, `go run ./tools/fuzz-check -time=30s` and `go run ./tools/api-check` pass.
 - `git status` is clean after the restores.
+
+Control 1, planted panic. A guard at the top of the `scanStrictLoop` byte loop panicked on `'~'`.
+`go run ./tools/fuzz-check -time=30s -target='^FuzzParse$'` found it in 0.45 s, exit 1:
+
+```
+--- FAIL: FuzzParse (0.45s)
+    --- FAIL: FuzzParse (0.00s)
+        testing.go:2076: panic: G10 planted panic
+    Failing input written to testdata\fuzz\FuzzParse\db7ae63e0377da75
+```
+
+The saved corpus file was `testdata/fuzz/FuzzParse/db7ae63e0377da75`, with body
+`go test fuzz v1` and `string("~")`. Go named the normal regression command
+`go test -run=FuzzParse/db7ae63e0377da75`. The guard, the crasher and the empty `testdata/fuzz`
+directory were removed after the control.
+
+Control 2, renamed exported function. `Parse` became `ParseDate`; `go run ./tools/api-check` exited
+1:
+
+```
+api-check: nepdate: API differs from testdata/api/nepdate.snapshot:
+Incompatible changes:
+- Parse: removed
+Compatible changes:
+- ParseDate: added
+run `go run ./tools/api-check -update` after updating docs/API.md
+```
+
+Control 3, undocumented addition. `UndocumentedForG10` had a doc comment but no `docs/API.md` line.
+`go run ./tools/api-check -update` wrote the 7,517-byte `nepdate.snapshot`, then exited 1:
+
+```
+api-check: exported identifier UndocumentedForG10 is not in docs/API.md
+```
+
+The documentation check, not the snapshot comparison, was the failing step. The function and both
+snapshots were restored. The restored `go run ./tools/api-check` printed `api-check: ok`, and the
+restored `FuzzParse` run passed 745,911 execs in 30 s with 0 crashers. The full restored run passed
+10/10 targets with 12,544,653 execs, 24 new cache entries and 0 crashers.
 
 ## Fuzz inventory
 
