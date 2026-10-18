@@ -93,7 +93,20 @@ func TestReleaseReadinessNegativeControls(t *testing.T) {
 			if !strings.Contains(err.Error(), c.want) {
 				t.Errorf("error lacks %q:\n%v", c.want, err)
 			}
+			// Each control breaks one input, so exactly one check may fail.
+			if !strings.HasPrefix(err.Error(), "1 release problems:") {
+				t.Errorf("want exactly one failed check, got:\n%v", err)
+			}
 		})
+	}
+}
+
+// TestReleaseReadinessRepo runs the check on the real repository files, so drift between the
+// README, ADR-0008, ci.yml and go.mod fails the normal test gate, not only a release. go list is
+// replaced because the module list is covered by the negative control above.
+func TestReleaseReadinessRepo(t *testing.T) {
+	if err := releaseReadiness(filepath.Join("..", ".."), "v0.1.0", fixedModules(releaseModule+"\n")); err != nil {
+		t.Fatalf("repository release inputs: %v", err)
 	}
 }
 

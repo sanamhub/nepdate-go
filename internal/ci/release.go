@@ -22,11 +22,11 @@ var (
 func releaseReadiness(root, tag string, modules func(string) (string, error)) error {
 	mod, err := readReleaseFile(root, "go.mod")
 	if err != nil {
-		return fmt.Errorf("release-check: %w", err)
+		return err
 	}
 	module, goversion, err := goModInfo(mod)
 	if err != nil {
-		return fmt.Errorf("release-check: %w", err)
+		return err
 	}
 
 	var problems []string

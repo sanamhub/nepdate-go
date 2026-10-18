@@ -14,9 +14,13 @@ const goDocVersion = "go1.27.1"
 
 // TestGoDocPreview compares the committed go doc output with the command output. It runs only on
 // the toolchain that generated the files, so a different Go version skips instead of producing a
-// formatting diff that says nothing about the docs.
+// formatting diff that says nothing about the docs. CI sets NEPDATE_GODOC_REQUIRED in the job that
+// pins that toolchain, where a skip would hide a stale preview, so there it fails instead.
 func TestGoDocPreview(t *testing.T) {
 	if runtime.Version() != goDocVersion {
+		if os.Getenv("NEPDATE_GODOC_REQUIRED") != "" {
+			t.Fatalf("pkg.go.dev preview needs %s, this is %s, and NEPDATE_GODOC_REQUIRED is set", goDocVersion, runtime.Version())
+		}
 		t.Skipf("pkg.go.dev preview needs %s, this is %s", goDocVersion, runtime.Version())
 	}
 	for _, c := range []struct {

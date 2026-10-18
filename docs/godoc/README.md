@@ -11,4 +11,6 @@ go doc -all ./patro > docs/godoc/patro.txt
 ```
 
 `TestGoDocPreview` compares the files with the command output byte for byte. On any Go version other
-than 1.27.1 the test skips, and the CI summary reports that as a reduced check.
+than 1.27.1 the test skips, and the CI summary reports that as a reduced check. The `api` job in
+`ci.yml` and `release.yml` pins Go 1.27.1 and sets `NEPDATE_GODOC_REQUIRED=1`, which turns that skip
+into a failure, so the files are enforced in CI even though the quality-gate jobs use `1.27`.
