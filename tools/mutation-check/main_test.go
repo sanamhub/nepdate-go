@@ -179,3 +179,64 @@ func TestScoreIsNotRounded(t *testing.T) {
 		t.Fatalf("96 failed a 96 gate: %v", err)
 	}
 }
+
+func TestReadBaselineRejectsMalformedLines(t *testing.T) {
+	cases := map[string]string{
+		"spaces, not tabs":  "parse.go CONDITIONALS_NEGATION LIVED 1\n",
+		"three fields":      "parse.go\tCONDITIONALS_NEGATION\t1\n",
+		"unknown status":    "parse.go\tCONDITIONALS_NEGATION\tKILLED\t1\n",
+		"empty file name":   "\tCONDITIONALS_NEGATION\tLIVED\t1\n",
+		"zero count":        "parse.go\tCONDITIONALS_NEGATION\tLIVED\t0\n",
+		"non-numeric count": "parse.go\tCONDITIONALS_NEGATION\tLIVED\tone\n",
+		"duplicate key":     "parse.go\tCONDITIONALS_NEGATION\tLIVED\t1\nparse.go\tCONDITIONALS_NEGATION\tLIVED\t2\n",
+	}
+	for name, body := range cases {
+		path := filepath.Join(t.TempDir(), "survivors.txt")
+		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := readBaseline(path); err == nil {
+			t.Errorf("%s: readBaseline accepted %q", name, body)
+		}
+	}
+}
+
+// TestReadBaselineAcceptsCRLF covers a checkout that converts line endings despite .gitattributes.
+func TestReadBaselineAcceptsCRLF(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "survivors.txt")
+	body := "# comment\r\n\r\nparse.go\tCONDITIONALS_NEGATION\tLIVED\t2\r\n"
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := readBaseline(path)
+	if err != nil {
+		t.Fatalf("CRLF baseline failed: %v", err)
+	}
+	if got[survivorKey{"parse.go", "CONDITIONALS_NEGATION", "LIVED"}] != 2 {
+		t.Errorf("CRLF baseline read as %v", got)
+	}
+}
+
+// TestCommittedBaselineIsCanonical keeps survivors.txt in the exact form -update writes, so a hand
+// edit (unsorted lines, spaces, a changed header) shows up here rather than in a 7 minute run.
+func TestCommittedBaselineIsCanonical(t *testing.T) {
+	counts, err := readBaseline("survivors.txt")
+	if err != nil {
+		t.Fatalf("committed baseline: %v", err)
+	}
+	committed, err := os.ReadFile("survivors.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "survivors.txt")
+	if err := writeBaseline(path, counts); err != nil {
+		t.Fatal(err)
+	}
+	canonical, err := os.ReadFile(path) //nolint:gosec // a file this test just wrote
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(bytes.ReplaceAll(committed, []byte("\r\n"), []byte("\n")), canonical) {
+		t.Errorf("survivors.txt is not in canonical form; regenerate it with -update:\n%s", committed)
+	}
+}
