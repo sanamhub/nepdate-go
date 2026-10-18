@@ -1,0 +1,4 @@
+go test fuzz v1
+rune('𐀺')
+string("y''y0ydMyMy0y00y0y00y0y00y0y00y0y")
+byte('I')

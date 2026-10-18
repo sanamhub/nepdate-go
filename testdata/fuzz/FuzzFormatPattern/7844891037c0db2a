@@ -1,0 +1,4 @@
+go test fuzz v1
+rune('ﾾ')
+string("yyyyyyyyyyyyyyyyy")
+byte('9')

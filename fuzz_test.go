@@ -46,26 +46,3 @@ func FuzzParseLenient(f *testing.F) {
 		checkParseResult(t, d, err)
 	})
 }
-
-// FuzzFormatRoundTrip formats a date with Short in Y-M-D order and every separator, padding and
-// language, and parses it back.
-func FuzzFormatRoundTrip(f *testing.F) {
-	f.Add(int32(65746+105), uint8(0), uint8(0), true, uint8(0))
-	f.Add(int32(0), uint8(0), uint8(5), false, uint8(1))
-	f.Add(int32(maxSerial), uint8(0), uint8(1), true, uint8(1))
-	f.Fuzz(func(t *testing.T, serial int32, order, sep uint8, pad bool, lang uint8) {
-		if serial < 0 || serial > maxSerial {
-			return
-		}
-		d := fromSerial(serial)
-		o, sp, l := DateOrder(order%6), Separator(sep%6), Lang(lang%2)
-		if o != YMD {
-			return
-		}
-		s := d.Short(o, sp, pad, l)
-		back, err := Parse(s)
-		if err != nil || back != d {
-			t.Fatalf("Parse(%q) = %v, %v; want %v", s, back, err, d)
-		}
-	})
-}

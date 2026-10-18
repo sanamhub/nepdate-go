@@ -1,0 +1,4 @@
+go test fuzz v1
+rune('7')
+byte('r')
+byte('\u0086')

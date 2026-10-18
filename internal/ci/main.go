@@ -63,6 +63,7 @@ func gates() []gate {
 		{"core isolation", isolationGate},
 		{"doc comments", docGate},
 		{"docs", docsGate},
+		{"api compatibility", func() error { return command("go", "run", "./tools/api-check") }},
 	}
 }
 

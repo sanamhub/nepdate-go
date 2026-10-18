@@ -1,0 +1,2 @@
+go test fuzz v1
+string("२०८\xe0\xa5\xf9")

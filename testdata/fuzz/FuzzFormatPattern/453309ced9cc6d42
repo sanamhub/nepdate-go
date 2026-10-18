@@ -1,0 +1,4 @@
+go test fuzz v1
+rune('>')
+string("MMMM")
+byte('\x00')

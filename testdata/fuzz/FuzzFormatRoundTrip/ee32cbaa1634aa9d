@@ -1,0 +1,6 @@
+go test fuzz v1
+rune('\U0001007b')
+byte('\x04')
+byte('\x04')
+bool(true)
+byte('I')

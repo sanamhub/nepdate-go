@@ -12,3 +12,4 @@ ADR.
 | [0004](0004-testing-and-quality-gates.md) | Testing and quality gates | Accepted |
 | [0005](0005-releases.md) | Releases | Accepted |
 | [0006](0006-doc-and-docs-gates.md) | Doc comment and docs gates (amends 0004) | Accepted |
+| [0007](0007-api-compatibility.md) | API compatibility gate (amends 0004 and 0006) | Accepted |

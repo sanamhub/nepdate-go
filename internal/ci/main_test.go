@@ -135,6 +135,12 @@ func TestIsolationCheck(t *testing.T) {
 	}
 }
 
+func TestGateCount(t *testing.T) {
+	if got := len(gates()); got != 9 {
+		t.Errorf("gates() has %d gates, want 9 (ADR-0007 adds api compatibility)", got)
+	}
+}
+
 func TestRunGatesCountsSkipsSeparately(t *testing.T) {
 	ok := func() error { return nil }
 	skip := func() error { return fmt.Errorf("%w: tool not on PATH", errSkipped) }
@@ -156,11 +162,11 @@ func TestSummaryNamesSkippedGates(t *testing.T) {
 		reduced       []string
 		want          string
 	}{
-		{8, 8, nil, nil, "ci: 8/8 gates passed"},
-		{6, 8, []string{"golangci-lint", "govulncheck"}, nil, "ci: 6/8 gates passed, 2 skipped (golangci-lint, govulncheck)"},
-		{2, 8, []string{"golangci-lint"}, nil, "ci: 2/8 gates passed, 1 skipped (golangci-lint)"},
-		{8, 8, nil, race, "ci: 8/8 gates passed, 1 reduced (tests without -race)"},
-		{7, 8, []string{"govulncheck"}, race, "ci: 7/8 gates passed, 1 skipped (govulncheck), 1 reduced (tests without -race)"},
+		{9, 9, nil, nil, "ci: 9/9 gates passed"},
+		{7, 9, []string{"golangci-lint", "govulncheck"}, nil, "ci: 7/9 gates passed, 2 skipped (golangci-lint, govulncheck)"},
+		{3, 9, []string{"golangci-lint"}, nil, "ci: 3/9 gates passed, 1 skipped (golangci-lint)"},
+		{9, 9, nil, race, "ci: 9/9 gates passed, 1 reduced (tests without -race)"},
+		{8, 9, []string{"govulncheck"}, race, "ci: 8/9 gates passed, 1 skipped (govulncheck), 1 reduced (tests without -race)"},
 	}
 	for _, c := range cases {
 		if got := summary(c.passed, c.total, c.skipped, c.reduced); got != c.want {

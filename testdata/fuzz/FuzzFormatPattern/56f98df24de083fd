@@ -1,0 +1,4 @@
+go test fuzz v1
+rune('\x12')
+string("y''y''y0y")
+byte('\x00')

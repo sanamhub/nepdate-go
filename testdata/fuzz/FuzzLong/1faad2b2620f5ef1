@@ -1,0 +1,4 @@
+go test fuzz v1
+rune('𐄖')
+byte('k')
+byte('\x01')
