@@ -124,11 +124,10 @@ func output(name string, args ...string) (string, error) {
 }
 
 // optional runs a tool that CI always installs but a developer machine may not have. A missing
-// tool counts as passed, with a warning.
+// tool skips the gate; runGates reports it as skipped, not passed.
 func optional(name string, args ...string) error {
 	if _, err := exec.LookPath(name); err != nil {
-		fmt.Printf("ci: warning: %s not on PATH, gate skipped (CI always runs it)\n", name)
-		return nil
+		return fmt.Errorf("%w: %s not on PATH (CI runs it in its own job)", errSkipped, name)
 	}
 	return command(name, args...)
 }

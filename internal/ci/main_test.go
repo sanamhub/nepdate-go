@@ -164,3 +164,9 @@ func TestSummaryNamesSkippedGates(t *testing.T) {
 		}
 	}
 }
+
+func TestOptionalMissingToolIsSkipped(t *testing.T) {
+	if err := optional("nepdate-no-such-tool"); !errors.Is(err, errSkipped) {
+		t.Errorf("optional(missing tool) = %v, want errSkipped", err)
+	}
+}
