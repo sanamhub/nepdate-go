@@ -198,6 +198,22 @@ AC:
 - The survivor set is compared with Windows and the baseline is platform-neutral, or a difference
   is explained.
 
+### G8b-03 Release rule
+A tag is only made from a `main` commit whose `ci` run, including the `mutation` job, is green.
+`release.yml` does not run the mutation gate itself; it runs the eight `internal/ci` gates, lint,
+govulncheck and the consumer check. The same sentence is in `docs/runbooks/release.md`.
+
+No ADR is added. ADR-0004 lists gates 1 to 6 and ADR-0006 adds gates 7 and 8. The mutation job is
+outside `internal/ci`, so neither gate list changes. ADR-0005 already says tags are made on `main`
+and the release workflow runs full CI. A new ADR would repeat a process rule without recording a
+changed decision.
+
+AC:
+- The plan and `docs/runbooks/release.md` state the release rule.
+- The mutation job remains outside `internal/ci`; no ADR is added because the gate list is
+  unchanged.
+- `ci: 8/8 gates passed`.
+
 ## Out of scope
 
 No tags, publishing, remote or repository settings changes. The gate runs in CI, not inside

@@ -4,7 +4,9 @@ Decided in ADR-0005. Owner: maintainer. Approver: a second person.
 
 ## Before tagging
 
-1. `main` is green. `go run ./internal/ci` passes locally.
+1. `main` is green. `go run ./internal/ci` passes locally, and the commit's `ci` run, including the
+   `mutation` job, is green. A tag is only made from a `main` commit whose `ci` run, including the
+   `mutation` job, is green; `release.yml` does not run the mutation gate itself.
 2. `CHANGELOG.md` has `## [X.Y.Z] - YYYY-MM-DD`, moved out of `[Unreleased]`.
 3. `go run ./internal/ci release-check vX.Y.Z` passes.
 
