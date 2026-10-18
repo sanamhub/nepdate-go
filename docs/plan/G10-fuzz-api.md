@@ -9,8 +9,9 @@ by the G9 review decision. The machine is shared, so this phase runs no benchmar
 
 Tool: `golang.org/x/exp/cmd/apidiff` pinned at
 `v0.0.0-20261014143641-f0251eb4aa3e`. The gate fetches it with `go run` and a version suffix, so the
-root module keeps zero dependencies and no `go.sum`. The API snapshot is
-`testdata/api.snapshot`, made by `apidiff -m -w` from the current module.
+root module keeps zero dependencies and no `go.sum`. The snapshots are
+`testdata/api/nepdate.snapshot` and `testdata/api/patro.snapshot`, made by `apidiff -w` in package
+mode. Module mode would also report the command packages under `tools/`, which are not API.
 
 Fuzz runs use the standard `go test -fuzz` driver. Local default: 30 s per target, `-parallel=4`,
 one target at a time, so at most four fuzz workers. Workflows use the same tool with a fixed longer
@@ -97,21 +98,21 @@ tool.
 runs the same 3-minute budget before `release`.
 
 ### G10-03 API compatibility
-Commit `testdata/api.snapshot`, the apidiff export data of the current exported surface of
-`nepdate` and `patro`. Add `tools/api-check`:
+Commit `testdata/api/nepdate.snapshot` and `testdata/api/patro.snapshot`, the apidiff export data
+of the current exported surface of each package. Add `tools/api-check`:
 
-- `go run ./tools/api-check` compares the snapshot with the current module. A removed or changed
+- `go run ./tools/api-check` compares each snapshot with the current package. A removed or changed
   identifier fails.
 - An addition fails until the snapshot is updated, and every exported identifier in both packages
   must appear in `docs/API.md`. An addition that is missing from that page fails even after
   `-update`.
-- `go run ./tools/api-check -update` rewrites the snapshot from the current module.
+- `go run ./tools/api-check -update` rewrites both snapshots from the current packages.
 
 Add gate 9 to `internal/ci`. Write ADR-0007 for the new gate and update the ADR index; do not edit
 ADR-0004 or ADR-0006. Add an `api` job to `ci.yml` and `release.yml`, and make `release` need it.
 
 AC:
-- `testdata/api.snapshot` is committed `-update` output and its byte size is recorded.
+- Both snapshots are committed `-update` output and their byte sizes are recorded.
 - `go run ./tools/api-check` exits 0 on the branch.
 - Renaming an exported function fails, naming the old and new identifiers.
 - Adding an exported function without `docs/API.md` fails, naming the identifier, both with and
@@ -119,7 +120,13 @@ AC:
 - `go run ./internal/ci` ends with `ci: 9/9 gates passed` in CI, and locally with
   `1 reduced (tests without -race)`.
 - `go list -m all` lists only the root module, `go.sum` is absent and no dependency is added.
-- ADR-0007 records the gate, its tool pin and why `internal/` packages are excluded.
+- ADR-0007 records the gate, its tool pin and why `internal/` and `tools/` are excluded.
+
+Result on 2026-10-18: `nepdate.snapshot` is 7,486 bytes and `patro.snapshot` is 6,387 bytes, 13,873
+bytes together. Package mode reports "no changes" for both. The gate finds 126 distinct exported
+names in the two packages and every one is in `docs/API.md`. `go test ./internal/ci` and
+`go test ./tools/api-check` pass, `golangci-lint` reports 0 issues, and `actionlint` accepts all
+three workflows. ADR-0007 records gate 9 and the package-mode reason.
 
 ### G10-04 Negative controls
 Run one control for each new failure path:

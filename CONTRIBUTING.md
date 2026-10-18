@@ -20,10 +20,11 @@ go run ./internal/ci
 ```
 
 The last line reads `ci: <n>/<n> gates passed`. `golangci-lint` and `govulncheck` are skipped when
-they aren't installed, and the line then says so, for example `ci: 6/8 gates passed, 2 skipped
+they aren't installed, and the line then says so, for example `ci: 7/9 gates passed, 2 skipped
 (golangci-lint, govulncheck)`. CI runs both in their own jobs. The race detector needs cgo, so on a
 machine without a C compiler the tests run without `-race` and the line ends with `1 reduced (tests
-without -race)`. The Linux CI job runs them with `-race`.
+without -race)`. The Linux CI job runs them with `-race`. The API gate fetches its pinned apidiff
+tool with `go run`, so its first run needs the module proxy or a warm module cache.
 
 - Zero dependencies in the root module, tests included.
 - No exported identifier beyond [`docs/API.md`](docs/API.md).

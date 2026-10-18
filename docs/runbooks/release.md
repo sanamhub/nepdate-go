@@ -25,8 +25,9 @@ git tag -s vX.Y.Z -m "vX.Y.Z"
 git push origin vX.Y.Z
 ```
 
-`release.yml` runs preflight and CI, waits for the `production` approval, creates the GitHub Release
-from the changelog section, and asks proxy.golang.org to fetch the version.
+`release.yml` runs preflight, CI, the API snapshot check and the fuzz budget, waits for the
+`production` approval, creates the GitHub Release from the changelog section, and asks
+proxy.golang.org to fetch the version.
 
 ## After releasing
 
