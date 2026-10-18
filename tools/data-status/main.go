@@ -1,12 +1,13 @@
 // Command data-status reports how long the compiled patro data lasts.
 //
 //	go run ./tools/data-status
-//	go run ./tools/data-status -today=2084-01-01
+//	go run ./tools/data-status -today=2027-04-14
 //
 // The scan reads the generated dayInfo table through package patro, not shared/data. Tithi,
 // holiday and event end dates are the last day of each kind in the table. A holiday with fewer
 // than 183 days left exits 1; tithi and events with fewer than 183 days left warn and exit 0.
-// The default today is Nepal time; -today takes a BS date in YYYY-MM-DD form.
+// Today is the current UTC date, the same rule as every other port's data gate, so the result does
+// not depend on the machine's time zone. -today takes an AD date in YYYY-MM-DD form instead.
 package main
 
 import (
@@ -15,6 +16,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	nepdate "github.com/sanamhub/nepdate-go"
 	"github.com/sanamhub/nepdate-go/patro"
@@ -39,7 +41,7 @@ func main() {
 func run(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("data-status", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	todayFlag := fs.String("today", "", "BS date in YYYY-MM-DD form; default is today in Nepal")
+	todayFlag := fs.String("today", "", "AD date in YYYY-MM-DD form; default is the current UTC date")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
@@ -47,7 +49,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		writeln(stderr, "data-status: unexpected argument", fs.Arg(0))
 		return 2
 	}
-	today, err := parseToday(*todayFlag)
+	today, err := parseToday(*todayFlag, time.Now())
 	if err != nil {
 		writeln(stderr, "data-status:", err)
 		return 2
@@ -58,10 +60,11 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 
+	writef(stdout, "today: %s (AD %s)\n", today, adDate(today))
 	failed := false
 	warned := false
 	for _, row := range rows {
-		writef(stdout, "%s: ends %s, %d days left\n", row.name, row.end, row.days)
+		writef(stdout, "%s: ends %s (AD %s), %d days left\n", row.name, row.end, adDate(row.end), row.days)
 		fail, warn := classify(row.days, row.holiday)
 		switch {
 		case fail:
@@ -92,6 +95,12 @@ func writeln(w io.Writer, args ...any) {
 	_, _ = fmt.Fprintln(w, args...)
 }
 
+// adDate formats the Gregorian day of d as YYYY-MM-DD.
+func adDate(d nepdate.Date) string {
+	y, m, day := d.Gregorian()
+	return fmt.Sprintf("%04d-%02d-%02d", y, int(m), day)
+}
+
 // classify reports whether a kind fails or warns. Holidays fail; the other kinds warn.
 func classify(days int, holiday bool) (fail, warn bool) {
 	if days >= warningDays {
@@ -103,14 +112,20 @@ func classify(days int, holiday bool) (fail, warn bool) {
 	return false, true
 }
 
-// parseToday parses an explicit BS date, or returns today in Nepal for an empty value.
-func parseToday(s string) (nepdate.Date, error) {
-	if s == "" {
-		return nepdate.Today(nil)
+// parseToday parses an explicit AD date, or returns the UTC calendar date of now for an empty
+// value. Either way the result is the BS date of that AD day.
+func parseToday(s string, now time.Time) (nepdate.Date, error) {
+	t := now.UTC()
+	if s != "" {
+		var err error
+		t, err = time.Parse(time.DateOnly, s)
+		if err != nil {
+			return nepdate.Date{}, fmt.Errorf("invalid -today %q: want an AD date in YYYY-MM-DD form", s)
+		}
 	}
-	d, err := nepdate.Parse(s)
+	d, err := nepdate.FromGregorian(t.Year(), t.Month(), t.Day())
 	if err != nil {
-		return nepdate.Date{}, fmt.Errorf("invalid -today %q: %w", s, err)
+		return nepdate.Date{}, fmt.Errorf("-today %s: %w", t.Format(time.DateOnly), err)
 	}
 	return d, nil
 }

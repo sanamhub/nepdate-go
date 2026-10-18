@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+	"time"
 
 	nepdate "github.com/sanamhub/nepdate-go"
 )
@@ -61,29 +62,70 @@ func TestExpiryRows(t *testing.T) {
 }
 
 func TestParseToday(t *testing.T) {
-	d, err := parseToday("2084-08-01")
+	d, err := parseToday("2027-11-16", time.Time{})
 	if err != nil || d.String() != "2084/08/01" {
 		t.Fatalf("parseToday = %v, %v; want 2084/08/01", d, err)
 	}
-	if _, err := parseToday("2084-08-32"); err == nil {
-		t.Error("invalid date accepted")
+	for _, bad := range []string{"2027-11-31", "2084/08/01", "2084-08-01x"} {
+		if _, err := parseToday(bad, time.Time{}); err == nil {
+			t.Errorf("parseToday(%q) accepted", bad)
+		}
 	}
-	if _, err := parseToday(""); err != nil {
-		t.Errorf("default clock failed: %v", err)
+}
+
+// TestParseTodayDefaultIsUTC pins the default to the UTC calendar date. At 20:00 UTC it is
+// already the next day in Nepal (+05:45), and the gate must still use the UTC day, the rule every
+// port's data gate shares.
+func TestParseTodayDefaultIsUTC(t *testing.T) {
+	now := time.Date(2027, time.June, 3, 20, 0, 0, 0, time.UTC)
+	if nepal := now.In(time.FixedZone("NPT", 5*3600+45*60)); nepal.Day() != 4 {
+		t.Fatalf("test premise: Nepal day is %d, want 4", nepal.Day())
+	}
+	d, err := parseToday("", now.In(time.FixedZone("NPT", 5*3600+45*60)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := parseToday("2027-06-03", time.Time{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d != want {
+		t.Errorf("default today = %s, want %s (the UTC day 2027-06-03)", d, want)
+	}
+}
+
+// TestHolidayBoundary checks the 183-day rule on the real tables with AD dates, the same dates the
+// Rust and Python gates use: 2027-06-03 leaves 183 holiday days, 2027-06-04 leaves 182.
+func TestHolidayBoundary(t *testing.T) {
+	for _, c := range []struct {
+		today string
+		code  int
+		want  string
+	}{
+		{"2027-06-03", 0, "holidays: ends 2084/08/18 (AD 2027-12-03), 183 days left"},
+		{"2027-06-04", 1, "data-status: holiday data has 182 days left (threshold 183)"},
+	} {
+		var out, errOut bytes.Buffer
+		if code := run([]string{"-today=" + c.today}, &out, &errOut); code != c.code {
+			t.Errorf("-today=%s: run = %d, want %d\n%s%s", c.today, code, c.code, out.String(), errOut.String())
+		}
+		if !strings.Contains(out.String(), c.want) {
+			t.Errorf("-today=%s: output lacks %q:\n%s", c.today, c.want, out.String())
+		}
 	}
 }
 
 func TestRunPassesWithWarnings(t *testing.T) {
 	var out, errOut bytes.Buffer
-	code := run([]string{"-today=2084-01-01"}, &out, &errOut)
+	code := run([]string{"-today=2027-04-14"}, &out, &errOut)
 	if code != 0 {
 		t.Fatalf("run = %d, want 0; stderr:\n%s", code, errOut.String())
 	}
 	got := out.String()
 	for _, want := range []string{
-		"tithi: ends 2083/12/30, -1 days left",
-		"holidays: ends 2084/08/18, 233 days left",
-		"events: ends 2084/08/20, 235 days left",
+		"tithi: ends 2083/12/30 (AD 2027-04-13), -1 days left",
+		"holidays: ends 2084/08/18 (AD 2027-12-03), 233 days left",
+		"events: ends 2084/08/20 (AD 2027-12-05), 235 days left",
 		"data-status: warning: tithi data has -1 days left (threshold 183)",
 		"data-status: warning\n",
 	} {
@@ -95,7 +137,7 @@ func TestRunPassesWithWarnings(t *testing.T) {
 
 func TestRunFailsOnHolidayExpiry(t *testing.T) {
 	var out, errOut bytes.Buffer
-	code := run([]string{"-today=2084-08-01"}, &out, &errOut)
+	code := run([]string{"-today=2027-11-16"}, &out, &errOut)
 	if code != 1 {
 		t.Fatalf("run = %d, want 1; stdout:\n%s\nstderr:\n%s", code, out.String(), errOut.String())
 	}

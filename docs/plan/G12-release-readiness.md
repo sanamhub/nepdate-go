@@ -56,6 +56,12 @@ events at 235. `-today=2084-08-01` exits 1 with holidays at 17 days and tithi at
 19 days. `TestClassify` covers 183 and 182 days, and `TestExpiryRows` asserts the three end dates.
 `release.yml` runs the tool in preflight; `ci.yml` was not changed.
 
+Review change: `-today` now takes an AD date and the default is the current UTC date, the same
+rule as the Rust and Python data gates, so the result does not depend on the machine's time zone.
+The BS examples above become `-today=2027-04-14` (pass, tithi -1) and `-today=2027-11-16` (fail,
+holidays 17). `TestHolidayBoundary` checks AD 2027-06-03 (183 holiday days, exit 0) and 2027-06-04
+(182, exit 1) on the real tables, the dates the other ports use.
+
 ### G12-02 Release dry run
 Extend `go run ./internal/ci release-check vX.Y.Z` to check, in addition to the CHANGELOG section
 from ADR-0005:
