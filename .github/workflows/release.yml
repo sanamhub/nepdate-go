@@ -83,8 +83,8 @@ jobs:
         run: go run ./tools/consumer-check -negative
 
   mutation:
-    # The same mutation gate as ci.yml, so a tag cannot release a commit whose survivor baseline
-    # does not hold. Go is pinned to the version the baseline was measured with.
+    # The same mutation gate as ci.yml, so a tag cannot release a commit whose survivor baselines
+    # do not hold. Go is pinned to the version the baselines were measured with.
     needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -96,8 +96,10 @@ jobs:
         with:
           go-version: "1.27.1"
           cache: false
-      - name: Mutation gate
-        run: go run ./tools/mutation-check -workers=4
+      - name: Core mutation gate
+        run: go run ./tools/mutation-check -package=core -workers=4
+      - name: Patro mutation gate
+        run: go run ./tools/mutation-check -package=patro -workers=4
 
   lint:
     needs: preflight
