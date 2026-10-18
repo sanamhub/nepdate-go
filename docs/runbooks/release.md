@@ -6,7 +6,8 @@ Decided in ADR-0005. Owner: maintainer. Approver: a second person.
 
 1. `main` is green. `go run ./internal/ci` passes locally, and the commit's `ci` run, including the
    `mutation` job, is green. A tag is only made from such a commit. `release.yml` runs the mutation
-   gate again and the `release` job needs it, so a red baseline stops the release either way.
+   gate and the 3-minute fuzz budget again, and the `release` job needs both, so a red baseline or
+   a crasher stops the release either way.
 2. `CHANGELOG.md` has `## [X.Y.Z] - YYYY-MM-DD`, moved out of `[Unreleased]`.
 3. `go run ./internal/ci release-check vX.Y.Z` passes.
 

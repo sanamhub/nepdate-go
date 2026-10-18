@@ -1,0 +1,31 @@
+name: fuzz
+
+on:
+  schedule:
+    # Weekly, Monday 03:17 UTC. Fuzzing is not a pull request check.
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fuzz-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fuzz:
+    # Ten targets at 3 minutes each, one target at a time with four workers. Go is pinned to the
+    # version the local 30-second run used. A crasher stays in testdata/fuzz and fails this job.
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.1"
+          cache: false
+      - name: Fuzz every target
+        run: go run ./tools/fuzz-check -time=3m -parallel=4

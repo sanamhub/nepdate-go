@@ -68,6 +68,34 @@ AC:
 - The local run, per-target numbers and any finding are recorded in this file.
 - `ci: 9/9 gates passed, 1 reduced (tests without -race)` after G10-03.
 
+Local run on 2026-10-18, Windows amd64, Go 1.27.1, 30 s per target and `-parallel=4`. The run
+followed an earlier 30 s run, so the fuzz cache already held 52 entries; "total corpus" is the size
+at the end and "new this run" is what this run added. No target wrote a file under `testdata/fuzz`.
+
+| Target | Execs | Total corpus | New this run | Crashers |
+|---|---:|---:|---:|---:|
+| `FuzzAddDays` | 534,944 | 8 | 0 | 0 |
+| `FuzzAppendDigits` | 718,486 | 26 | 0 | 0 |
+| `FuzzFormatPattern` | 787,325 | 86 | 13 | 0 |
+| `FuzzFormatRoundTrip` | 646,189 | 15 | 0 | 0 |
+| `FuzzLong` | 598,076 | 11 | 0 | 0 |
+| `FuzzParse` | 982,338 | 81 | 0 | 0 |
+| `FuzzParseLenient` | 587,441 | 146 | 33 | 0 |
+| `FuzzScanCanonical` | 718,458 | 48 | 2 | 0 |
+| `FuzzText` | 545,926 | 9 | 1 | 0 |
+| `FuzzUnmarshalText` | 509,976 | 82 | 3 | 0 |
+| **Total** | **6,629,159** | | **52** | **0** |
+
+The first 30 s run, before the cache existed, reported 7,329,831 execs and 186 new entries. It also
+exposed a reporting bug: the tool summed the repeated cumulative `new interesting` value and printed
+44 new entries for `FuzzAddDays` against 4 actual. `parseStats` now keeps the last value, and
+`TestParseStatsKeepsCumulativeCountOnce` covers the repeated line. The rerun above uses the fixed
+tool.
+
+`go test -list` found 10 targets with no duplicate. `actionlint` accepted `ci.yml`, `fuzz.yml` and
+`release.yml`. Fuzzing is not in `ci.yml`; `fuzz.yml` runs weekly and on dispatch, and `release.yml`
+runs the same 3-minute budget before `release`.
+
 ### G10-03 API compatibility
 Commit `testdata/api.snapshot`, the apidiff export data of the current exported surface of
 `nepdate` and `patro`. Add `tools/api-check`:
