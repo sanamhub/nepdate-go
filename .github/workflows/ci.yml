@@ -110,6 +110,13 @@ jobs:
           cache: false
       - name: API compatibility
         run: go run ./tools/api-check
+      - name: pkg.go.dev preview
+        # The quality gates skip this test on any Go but 1.27.1, and setup-go "1.27" may resolve to a
+        # later patch, so this job is where docs/godoc is enforced. The variable turns the skip into
+        # a failure if the pin ever drifts from the generator.
+        env:
+          NEPDATE_GODOC_REQUIRED: "1"
+        run: go test -count=1 -run '^TestGoDocPreview$' .
 
   lint:
     runs-on: ubuntu-latest

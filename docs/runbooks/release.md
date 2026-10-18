@@ -9,7 +9,14 @@ Decided in ADR-0005. Owner: maintainer. Approver: a second person.
    gate and the 3-minute fuzz budget again, and the `release` job needs both, so a red baseline or
    a crasher stops the release either way.
 2. `CHANGELOG.md` has `## [X.Y.Z] - YYYY-MM-DD`, moved out of `[Unreleased]`.
-3. `go run ./internal/ci release-check vX.Y.Z` passes.
+3. `go run ./internal/ci release-check vX.Y.Z` passes. It checks the changelog section, the README
+   import path and Go line, the ADR-0008 pin against `ci.yml`, `shared/VERSION`, the shared data
+   NOTICE and that `go list -m all` names only this module.
+4. `go run ./tools/data-status` passes. It prints the last BS and AD day of tithi, holiday and
+   event data and the days left from today, the current UTC date (`-today=YYYY-MM-DD` takes an AD
+   date instead). Holidays under 183 days exit 1 and block the release; tithi and events under 183
+   days only warn, so refresh the data from the hub before they run out. `release.yml` runs both
+   checks in preflight.
 
 ## Dry run (no tag)
 

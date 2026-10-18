@@ -25,12 +25,16 @@ jobs:
         with:
           go-version: "1.27"
           cache: false
-      - name: Release check
+      - name: Release readiness
         # The version goes through env, never into the script text, so a crafted tag or input
-        # cannot inject shell.
+        # cannot inject shell. The command checks CHANGELOG, README, ADR-0008, shared/VERSION,
+        # NOTICE and that go list -m all names only this module.
         env:
           VERSION: ${{ inputs.version || github.ref_name }}
         run: go run ./internal/ci release-check "$VERSION"
+      - name: Data status
+        # A release is blocked when holiday data has fewer than 183 days left.
+        run: go run ./tools/data-status
 
   ci:
     needs: preflight
@@ -116,6 +120,13 @@ jobs:
           cache: false
       - name: API compatibility
         run: go run ./tools/api-check
+      - name: pkg.go.dev preview
+        # The quality gates skip this test on any Go but 1.27.1, and setup-go "1.27" may resolve to a
+        # later patch, so this job is where docs/godoc is enforced. The variable turns the skip into
+        # a failure if the pin ever drifts from the generator.
+        env:
+          NEPDATE_GODOC_REQUIRED: "1"
+        run: go test -count=1 -run '^TestGoDocPreview$' .
 
   fuzz:
     # The weekly fuzz budget, repeated before a release. A crasher stays in testdata/fuzz, so the

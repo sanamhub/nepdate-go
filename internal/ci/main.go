@@ -1,7 +1,7 @@
 // Command ci runs every quality gate of ADR-0004 in order and stops at the first failure.
 //
 //	go run ./internal/ci                       run the gates
-//	go run ./internal/ci release-check v0.1.0  check CHANGELOG.md has a dated 0.1.0 section
+//	go run ./internal/ci release-check v0.1.0  check the release inputs for version 0.1.0
 //
 // The last line is always "ci: <passed>/<total> gates passed", followed by ", <n> skipped (<names>)"
 // when an optional tool is missing and ", <n> reduced (<what>)" when a gate ran with less than CI
@@ -23,6 +23,9 @@ import (
 // minCoverage is the statement coverage each library package needs (ADR-0004 gate 3).
 const minCoverage = 90.0
 
+// goDocVersion is the toolchain that generated docs/godoc (ADR-0008 pin).
+const goDocVersion = "go1.27.1"
+
 type gate struct {
 	name string
 	run  func() error
@@ -34,11 +37,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "usage: go run ./internal/ci [release-check vX.Y.Z]")
 			os.Exit(2)
 		}
-		log, err := os.ReadFile("CHANGELOG.md")
-		if err == nil {
-			err = releaseCheck(string(log), os.Args[2])
-		}
-		if err != nil {
+		if err := releaseReadiness(".", os.Args[2], moduleList); err != nil {
 			fmt.Fprintln(os.Stderr, "release-check:", err)
 			os.Exit(1)
 		}
@@ -162,9 +161,19 @@ func testGate() error {
 	if err != nil {
 		return err
 	}
-	args := []string{"test", "-shuffle=on", "./..."}
+	goversion, err := goEnv("GOVERSION")
+	if err != nil {
+		return err
+	}
+	if goDocReduced(goversion) {
+		fmt.Printf("ci: warning: pkg.go.dev preview needs %s (GOVERSION=%s); the test skips\n", goDocVersion, goversion)
+		reduced = append(reduced, "pkg.go.dev preview (needs "+goDocVersion+")")
+	}
+	// -count=1 makes the go doc preview test run after a doc-only change; the test cache does not
+	// hash comments, so a cached pass would miss it.
+	args := []string{"test", "-count=1", "-shuffle=on", "./..."}
 	if raceSupported(cgo, arch) {
-		args = []string{"test", "-race", "-shuffle=on", "./..."}
+		args = []string{"test", "-race", "-count=1", "-shuffle=on", "./..."}
 	} else {
 		fmt.Printf("ci: warning: race detector needs cgo on amd64 or arm64 (CGO_ENABLED=%s, GOARCH=%s); running without -race\n", cgo, arch)
 		reduced = append(reduced, "tests without -race")
@@ -190,6 +199,11 @@ func goEnv(key string) (string, error) {
 
 func raceSupported(cgo, arch string) bool {
 	return cgo == "1" && (arch == "amd64" || arch == "arm64")
+}
+
+// goDocReduced reports whether the committed go doc preview cannot be checked on this toolchain.
+func goDocReduced(goversion string) bool {
+	return goversion != goDocVersion
 }
 
 type coverage struct {
