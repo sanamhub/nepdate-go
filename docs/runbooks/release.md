@@ -9,7 +9,9 @@ Decided in ADR-0005. Owner: maintainer. Approver: a second person.
    gate and the 3-minute fuzz budget again, and the `release` job needs both, so a red baseline or
    a crasher stops the release either way.
 2. `CHANGELOG.md` has `## [X.Y.Z] - YYYY-MM-DD`, moved out of `[Unreleased]`.
-3. `go run ./internal/ci release-check vX.Y.Z` passes.
+3. `go run ./internal/ci release-check vX.Y.Z` passes. It checks the changelog section, the README
+   import path and Go line, the ADR-0008 pin against `ci.yml`, `shared/VERSION`, the shared data
+   NOTICE and that `go list -m all` names only this module.
 
 ## Dry run (no tag)
 

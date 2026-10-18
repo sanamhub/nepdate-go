@@ -85,6 +85,12 @@ AC:
 - `go test ./internal/ci` and `go vet ./internal/ci` pass.
 - `go list -m all` still lists only the root module and `go.sum` is absent.
 
+Result on 2026-10-18: `go run ./internal/ci release-check v0.1.0` prints seven passing lines and
+`release-check: ok`. The seven negative controls in `TestReleaseReadinessNegativeControls` pass:
+CHANGELOG section, README import path, README go line, ADR-0008 pin, shared version, NOTICE and
+module dependency. `release.yml` names the step `Release readiness` and keeps the command in
+preflight. The runbook lists the checks.
+
 ### G12-03 pkg.go.dev preview
 Generate `docs/godoc/nepdate.txt` and `docs/godoc/patro.txt` with `go doc -all` under Go 1.27.1,
 the gate toolchain, and commit them. Add a short `docs/godoc/README.md` that says they are generated

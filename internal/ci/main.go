@@ -1,7 +1,7 @@
 // Command ci runs every quality gate of ADR-0004 in order and stops at the first failure.
 //
 //	go run ./internal/ci                       run the gates
-//	go run ./internal/ci release-check v0.1.0  check CHANGELOG.md has a dated 0.1.0 section
+//	go run ./internal/ci release-check v0.1.0  check the release inputs for version 0.1.0
 //
 // The last line is always "ci: <passed>/<total> gates passed", followed by ", <n> skipped (<names>)"
 // when an optional tool is missing and ", <n> reduced (<what>)" when a gate ran with less than CI
@@ -34,11 +34,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "usage: go run ./internal/ci [release-check vX.Y.Z]")
 			os.Exit(2)
 		}
-		log, err := os.ReadFile("CHANGELOG.md")
-		if err == nil {
-			err = releaseCheck(string(log), os.Args[2])
-		}
-		if err != nil {
+		if err := releaseReadiness(".", os.Args[2], moduleList); err != nil {
 			fmt.Fprintln(os.Stderr, "release-check:", err)
 			os.Exit(1)
 		}
