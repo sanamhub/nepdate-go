@@ -1,0 +1,4 @@
+go test fuzz v1
+rune('\U0001007b')
+string("y0y0y0y0y0y0y0y0y0y0y0y0y0y0y0y''y0y0y0y0y0y0y0y0y0y0y0y0y0y0y0y")
+byte('-')

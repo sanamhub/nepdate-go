@@ -1,0 +1,4 @@
+go test fuzz v1
+int(2081)
+byte('\x04')
+byte('T')

@@ -1,0 +1,4 @@
+go test fuzz v1
+rune('\U0001aa6d')
+string("'''''''''''''''")
+byte('\r')

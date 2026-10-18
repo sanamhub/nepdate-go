@@ -29,3 +29,12 @@ jobs:
           cache: false
       - name: Fuzz every target
         run: go run ./tools/fuzz-check -time=3m -parallel=4
+      - name: Keep the crasher
+        # A crasher written on the runner is otherwise lost with the workspace.
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fuzz-crashers
+          path: testdata/fuzz/
+          if-no-files-found: ignore
+          retention-days: 30

@@ -1,0 +1,6 @@
+go test fuzz v1
+rune('\U0001aa9b')
+byte('\x00')
+byte('\x01')
+bool(true)
+byte('\x00')

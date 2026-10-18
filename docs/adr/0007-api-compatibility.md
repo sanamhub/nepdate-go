@@ -25,7 +25,9 @@ importable outside the module, and `tools/` holds commands rather than library p
    addition also fails until the snapshot is rewritten with
    `go run ./tools/api-check -update`. The gate then checks every exported declaration, method and
    struct field in both packages against `docs/API.md`, so an addition cannot be accepted by
-   `-update` unless the contract page names it.
+   `-update` unless the contract page names it. Functions, methods and types must appear as their
+   declaration (`func Name(`, `func (r Recv) Name(`, `type Name`); constants, variables and fields
+   as a whole word.
 
 The tool pins `golang.org/x/exp/cmd/apidiff` at
 `v0.0.0-20261014143641-f0251eb4aa3e` and fetches it with `go run`, so the root module keeps zero

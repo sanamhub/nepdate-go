@@ -26,6 +26,11 @@ machine without a C compiler the tests run without `-race` and the line ends wit
 without -race)`. The Linux CI job runs them with `-race`. The API gate fetches its pinned apidiff
 tool with `go run`, so its first run needs the module proxy or a warm module cache.
 
+`go run ./tools/fuzz-check` runs every fuzz target for 30 s. `testdata/fuzz/` holds the committed
+corpus, which plain `go test` also runs as regression inputs. A file that appears there during a
+fuzz run is a crasher: keep it, fix the bug, and commit both. To add inputs that found new
+coverage, copy them from `$(go env GOCACHE)/fuzz/github.com/sanamhub/nepdate-go/<target>/`.
+
 - Zero dependencies in the root module, tests included.
 - No exported identifier beyond [`docs/API.md`](docs/API.md).
 - The paths listed in ADR-0002 §5 allocate nothing; `alloc_test.go` checks it.

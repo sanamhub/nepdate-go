@@ -6,6 +6,9 @@
 // Each package has a committed apidiff export-data snapshot under testdata/api. Any difference
 // fails, including a compatible addition, until -update records it. Every exported identifier in
 // both packages must also appear in docs/API.md, so -update cannot hide an undocumented addition.
+// Functions, methods and types must appear as their declaration (`func Name(`,
+// `func (r Recv) Name(` or `type Name`), so a common word such as Name or String elsewhere on the
+// page does not count; constants, variables and struct fields must appear as a whole word.
 // apidiff is pinned and fetched with go run, so the root module keeps no dependency on x/exp.
 package main
 
@@ -137,44 +140,83 @@ func apidiff(root string, args ...string) (string, error) {
 	return strings.TrimSpace(stdout.String()), nil
 }
 
-// checkDocs requires every exported name in both packages to appear as a word in docs/API.md.
+// declKind says how an exported identifier must appear in docs/API.md.
+type declKind int
+
+const (
+	kindValue  declKind = iota // constant, variable or struct field: a whole word
+	kindFunc                   // package-level function: "func Name("
+	kindMethod                 // method: "func (r Recv) Name(" or "func (r *Recv) Name("
+	kindType                   // type: "type Name"
+)
+
+// exported is one exported identifier and, for a method, its receiver type.
+type exported struct {
+	Kind declKind
+	Recv string
+	Name string
+}
+
+// String is the identifier as an error message names it.
+func (e exported) String() string {
+	if e.Kind == kindMethod {
+		return e.Recv + "." + e.Name
+	}
+	return e.Name
+}
+
+// documented reports whether doc names e in the form its kind requires.
+func documented(doc string, e exported) bool {
+	name := regexp.QuoteMeta(e.Name)
+	switch e.Kind {
+	case kindFunc:
+		return regexp.MustCompile(`func ` + name + `\(`).MatchString(doc)
+	case kindMethod:
+		return regexp.MustCompile(`func \(\w+ \*?` + regexp.QuoteMeta(e.Recv) + `\) ` + name + `\(`).MatchString(doc)
+	case kindType:
+		return regexp.MustCompile(`type ` + name + `(?:[^A-Za-z0-9_]|$)`).MatchString(doc)
+	case kindValue:
+		return containsWord(doc, e.Name)
+	}
+	return false
+}
+
+// checkDocs requires every exported identifier in both packages to be named in docs/API.md.
 func checkDocs(root string) error {
 	data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(docsPath))) //nolint:gosec // the contract path is fixed
 	if err != nil {
 		return fmt.Errorf("read %s: %w", docsPath, err)
 	}
 	doc := string(data)
-	seen := make(map[string]bool)
-	total := 0
+	seen := make(map[exported]bool)
 	for _, p := range packages {
-		names, err := exportedNames(filepath.Join(root, p.Dir))
+		decls, err := exportedDecls(filepath.Join(root, p.Dir))
 		if err != nil {
 			return fmt.Errorf("%s: %w", p.Name, err)
 		}
-		for _, name := range names {
-			if seen[name] {
+		for _, e := range decls {
+			if seen[e] {
 				continue
 			}
-			seen[name] = true
-			total++
-			if !containsWord(doc, name) {
-				return fmt.Errorf("exported identifier %s is not in %s", name, docsPath)
+			seen[e] = true
+			if !documented(doc, e) {
+				return fmt.Errorf("exported identifier %s is not in %s", e, docsPath)
 			}
 		}
 	}
-	fmt.Printf("api-check: %d exported names are in %s\n", total, docsPath)
+	fmt.Printf("api-check: %d exported identifiers are in %s\n", len(seen), docsPath)
 	fmt.Println("api-check: ok")
 	return nil
 }
 
-// exportedNames returns the distinct exported declarations, methods and struct fields in dir.
-func exportedNames(dir string) ([]string, error) {
+// exportedDecls returns the exported declarations, methods and struct fields in dir, sorted.
+func exportedDecls(dir string) ([]exported, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
 	fset := token.NewFileSet()
-	found := make(map[string]bool)
+	found := make(map[exported]bool)
 	for _, e := range entries {
 		name := e.Name()
 		if e.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
@@ -190,8 +232,10 @@ func exportedNames(dir string) ([]string, error) {
 				if !d.Name.IsExported() {
 					continue
 				}
-				if d.Recv == nil || exportedReceiver(d.Recv.List[0].Type) {
-					found[d.Name.Name] = true
+				if d.Recv == nil {
+					found[exported{Kind: kindFunc, Name: d.Name.Name}] = true
+				} else if recv, ok := exportedReceiver(d.Recv.List[0].Type); ok {
+					found[exported{Kind: kindMethod, Recv: recv, Name: d.Name.Name}] = true
 				}
 			case *ast.GenDecl:
 				for _, spec := range d.Specs {
@@ -200,12 +244,12 @@ func exportedNames(dir string) ([]string, error) {
 						if !s.Name.IsExported() {
 							continue
 						}
-						found[s.Name.Name] = true
+						found[exported{Kind: kindType, Name: s.Name.Name}] = true
 						collectFields(s.Type, found)
 					case *ast.ValueSpec:
 						for _, n := range s.Names {
 							if n.IsExported() {
-								found[n.Name] = true
+								found[exported{Kind: kindValue, Name: n.Name}] = true
 							}
 						}
 					}
@@ -213,16 +257,16 @@ func exportedNames(dir string) ([]string, error) {
 			}
 		}
 	}
-	names := make([]string, 0, len(found))
-	for name := range found {
-		names = append(names, name)
+	decls := make([]exported, 0, len(found))
+	for e := range found {
+		decls = append(decls, e)
 	}
-	sort.Strings(names)
-	return names, nil
+	sort.Slice(decls, func(i, j int) bool { return decls[i].String() < decls[j].String() })
+	return decls, nil
 }
 
 // collectFields adds exported struct field names under an exported type.
-func collectFields(expr ast.Expr, found map[string]bool) {
+func collectFields(expr ast.Expr, found map[exported]bool) {
 	ast.Inspect(expr, func(n ast.Node) bool {
 		st, ok := n.(*ast.StructType)
 		if !ok {
@@ -231,7 +275,7 @@ func collectFields(expr ast.Expr, found map[string]bool) {
 		for _, f := range st.Fields.List {
 			for _, name := range fieldNames(f) {
 				if ast.IsExported(name) {
-					found[name] = true
+					found[exported{Kind: kindValue, Name: name}] = true
 				}
 			}
 		}
@@ -261,8 +305,8 @@ func fieldNames(f *ast.Field) []string {
 	return nil
 }
 
-// exportedReceiver reports whether a method receiver is an exported type.
-func exportedReceiver(expr ast.Expr) bool {
+// exportedReceiver returns the receiver type name and whether it is exported.
+func exportedReceiver(expr ast.Expr) (string, bool) {
 	for {
 		switch t := expr.(type) {
 		case *ast.StarExpr:
@@ -270,9 +314,9 @@ func exportedReceiver(expr ast.Expr) bool {
 		case *ast.ParenExpr:
 			expr = t.X
 		case *ast.Ident:
-			return t.IsExported()
+			return t.Name, t.IsExported()
 		default:
-			return false
+			return "", false
 		}
 	}
 }
