@@ -67,6 +67,23 @@ AC:
 - Every patro survivor has a disposition.
 - `ci: 8/8 gates passed`.
 
+Measured on 2026-10-18 with four workers and timeout coefficient 30:
+
+| Run | Package | Killed | Lived | Not covered | Timed out | Test efficacy | Mutation coverage | Survivors | Elapsed |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Windows | core | 471 | 0 | 51 | 0 | 100.00 % | 90.23 % | 51 | 481.5 s |
+| Windows | patro | 24 | 0 | 0 | 0 | 100.00 % | 100.00 % | 0 | 14.8 s |
+| Linux | core | 471 | 0 | 51 | 0 | 100.00 % | 90.23 % | 51 | 190.4 s |
+| Linux | patro | 24 | 0 | 0 | 0 | 100.00 % | 100.00 % | 0 | 3.6 s |
+
+`patro` has no survivor: all 24 hand-written mutants are killed, so `survivors-patro.txt` is the
+three-line header with no data rows. No new patro test was needed; `TestAllData`, `TestAnchors`,
+`TestEmpty`, `TestCoverage` and `TestPublicHolidays` already cover every mutant.
+
+The first patro run at timeout coefficient 10 had four `TIMED OUT` mutants at `patro.go:37` and
+`patro.go:38`. The patro test binary is so fast that ten times its coverage run is under a second.
+Coefficient 30 removed them; three repeat runs had no timeout. The core baseline did not change.
+
 ### G9-03 Switch-case survivors
 The 41 NOT COVERED switch-case mutants in `lenient.go`, `parse.go` and `pattern.go` are not
 equivalent: a manual mutation of a representative case fails the suite, but Gremlins never tests
