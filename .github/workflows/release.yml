@@ -31,6 +31,9 @@ jobs:
         env:
           VERSION: ${{ inputs.version || github.ref_name }}
         run: go run ./internal/ci release-check "$VERSION"
+      - name: Data status
+        # A release is blocked when holiday data has fewer than 183 days left.
+        run: go run ./tools/data-status
 
   ci:
     needs: preflight

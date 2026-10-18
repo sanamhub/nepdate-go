@@ -50,6 +50,12 @@ AC:
 - `go test ./tools/data-status` and `go vet ./tools/data-status` pass.
 - `go list -m all` still lists only the root module and `go.sum` is absent.
 
+Result on 2026-10-18: the scan finds tithi ending 2083/12/30, holidays 2084/08/18 and events
+2084/08/20. `-today=2084-01-01` exits 0 with tithi at -1 days (warning) and holidays at 233 and
+events at 235. `-today=2084-08-01` exits 1 with holidays at 17 days and tithi at -217 and events at
+19 days. `TestClassify` covers 183 and 182 days, and `TestExpiryRows` asserts the three end dates.
+`release.yml` runs the tool in preflight; `ci.yml` was not changed.
+
 ### G12-02 Release dry run
 Extend `go run ./internal/ci release-check vX.Y.Z` to check, in addition to the CHANGELOG section
 from ADR-0005:
