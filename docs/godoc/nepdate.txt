@@ -1,0 +1,469 @@
+package nepdate // import "github.com/sanamhub/nepdate-go"
+
+Package nepdate converts between the Bikram Sambat (Nepali) and Gregorian
+calendars, and formats, parses and does arithmetic on BS dates.
+
+The supported range is BS 1901-01-01 to 2199-12-30 (AD 1844-04-11 to
+2143-04-15). Dates outside it return ErrOutOfRange. The zero Date is "no date":
+IsZero reports true and every operation that can fail returns ErrOutOfRange.
+
+Import it as
+
+    import nepdate "github.com/sanamhub/nepdate-go"
+
+Tithi, public holidays and events live in the separate package
+github.com/sanamhub/nepdate-go/patro. This package never imports it, so a
+program that only converts dates links none of the patro data.
+
+A Date marshals to JSON as "YYYY-MM-DD". Marshalling the zero Date returns
+ErrOutOfRange, so an optional date should be a *Date: nil marshals as null.
+
+VARIABLES
+
+var (
+	Min = Date{1901, 1, 1}
+	Max = Date{2199, 12, 30}
+)
+    Min and Max are the first and last supported dates, BS 1901-01-01 and
+    2199-12-30.
+
+var (
+	// ErrOutOfRange reports a date outside BS 1901-01-01..2199-12-30, a Gregorian date outside
+	// AD 1844-04-11..2143-04-15, an operation whose result leaves the range, or the zero Date.
+	ErrOutOfRange = errors.New("nepdate: date outside BS 1901-01-01..2199-12-30")
+	// ErrInvalidMonth reports a month outside 1..12.
+	ErrInvalidMonth = errors.New("nepdate: month must be 1..12")
+	// ErrInvalidDay reports a day outside 1 to the length of its month.
+	ErrInvalidDay = errors.New("nepdate: day outside the month")
+	// ErrInvalidGregorian reports an AD date that does not exist, such as 2023-02-29.
+	ErrInvalidGregorian = errors.New("nepdate: invalid Gregorian date")
+)
+    Sentinel errors. Test for them with errors.Is.
+
+
+FUNCTIONS
+
+func WeekdayName(w time.Weekday, lang Lang) string
+    WeekdayName returns the full name of w in lang, or "" if w is not
+    Sunday..Saturday or lang is unknown. It does not allocate.
+
+func WeekdayShortName(w time.Weekday, lang Lang) string
+    WeekdayShortName returns the short name of w in lang ("Tue", "मङ्गल"),
+    or "" if w is not Sunday..Saturday or lang is unknown. It does not allocate.
+
+
+TYPES
+
+type Date struct {
+	// Has unexported fields.
+}
+    Date is a Bikram Sambat calendar date. It is a small comparable value:
+    use == and as a map key. The zero value is "no date" (PARITY D-01): IsZero
+    reports true, accessors return 0, and every operation that returns an error
+    returns ErrOutOfRange.
+
+func FromGregorian(year int, month time.Month, day int) (Date, error)
+    FromGregorian returns the BS date of the AD date year-month-day. It returns
+    ErrInvalidGregorian if that AD date does not exist (2023-02-29) and
+    ErrOutOfRange if it is outside AD 1844-04-11..2143-04-15, checked in that
+    order (ALGORITHM §3). It does not allocate.
+
+func FromTime(t time.Time) (Date, error)
+    FromTime returns the BS date of t's calendar date in t's own location.
+    FromTime(t) and FromTime(t.UTC()) can differ by a day: Nepal is UTC+05:45,
+    so 2024-07-30 18:30 UTC is already 2024-07-31 in Kathmandu (BS 2081-04-16,
+    against 2081-04-15 in UTC). Convert t with In first to get the date
+    somewhere else. It returns ErrOutOfRange outside AD 1844-04-11..2143-04-15.
+    It does not allocate.
+
+func MustNew(year int, month Month, day int) Date
+    MustNew is New for constants and tests. It panics with New's error.
+
+func New(year int, month Month, day int) (Date, error)
+    New returns the date year-month-day. It checks the year first, then the
+    month, then the day (ALGORITHM §3), and returns ErrOutOfRange for a
+    year outside 1901..2199, ErrInvalidMonth for a month outside 1..12 and
+    ErrInvalidDay for a day outside the month. It does not allocate.
+
+func Parse(s string) (Date, error)
+    Parse reads a date in the strict form of shared/spec/PARSING.md §1: year,
+    month and day in that order, ASCII or Devanagari digits (they may be mixed,
+    PARITY D-05), at most 4 digits per number, separated by any of - / . _ \
+    space । |. It returns a *ParseError when the text is not in that form, and
+    New's error when it names an invalid date. It does not allocate on success;
+    a failed call allocates one *ParseError.
+
+func ParseLenient(s string) (Date, error)
+    ParseLenient reads a date written by a person (shared/spec/PARSING.md §2),
+    such as "15 Shrawan 2080", "Shrawan 15, 2080", "१५ श्रावण २०८०" or
+    "15.04.2080". It tries Parse first. Otherwise it splits the text into
+    numbers and words, drops era markers (BS, वि.सं.) and the words गते and
+    मिति, and accepts a closed list of month names (PARSING §3) or three numbers
+    with the 4-digit year first or last. It never guesses (PARITY D-06):
+    a 2-digit year is Ambiguous. It returns a *ParseError when no rule matches,
+    and New's error when the date is invalid. It does not allocate on success;
+    a failed call allocates one *ParseError.
+
+func Today(loc *time.Location) (Date, error)
+    Today returns today's BS date in loc. A nil loc means Asia/Kathmandu,
+    or the fixed zone NPT (UTC+05:45) when the system has no time zone database;
+    the library doesn't embed one. A server clock in UTC is 5 h 45 min behind
+    Nepal, so pass the zone you mean. It returns ErrOutOfRange if the clock is
+    outside the supported range.
+
+func (d Date) AddDays(n int) (Date, error)
+    AddDays returns d moved by n days. It returns ErrOutOfRange if the result is
+    outside the supported range or d is the zero Date. It does not allocate.
+
+func (d Date) AddMonths(n int, o Overflow) (Date, error)
+    AddMonths returns d moved by n months, with o deciding what happens to a day
+    past the end of the target month. It returns ErrOutOfRange if the result is
+    outside the supported range or d is the zero Date. It does not allocate.
+
+func (d Date) AddYears(n int, o Overflow) (Date, error)
+    AddYears returns d moved by n years, which is AddMonths(12*n, o). It returns
+    ErrOutOfRange like AddMonths. It does not allocate.
+
+func (d Date) After(other Date) bool
+    After reports whether d is after other. It does not allocate.
+
+func (d Date) AppendFormat(b []byte, pattern string, lang Lang) []byte
+    AppendFormat is Format appending to b. It does not allocate when b has room.
+
+func (d Date) AppendLong(b []byte, opts LongOptions, lang Lang) []byte
+    AppendLong is Long appending to b. It does not allocate when b has room.
+
+func (d Date) AppendShort(b []byte, o DateOrder, sep Separator, pad bool, lang Lang) []byte
+    AppendShort is Short appending to b. It does not allocate when b has room.
+
+func (d Date) AppendText(b []byte) ([]byte, error)
+    AppendText appends "YYYY-MM-DD" to b (encoding.TextAppender). It does not
+    allocate when b has room, and returns b unchanged with ErrOutOfRange for the
+    zero Date.
+
+func (d Date) Before(other Date) bool
+    Before reports whether d is before other. It does not allocate.
+
+func (d Date) Compare(other Date) int
+    Compare returns -1 if d is before other, 0 if they are equal and +1 if d
+    is after other. The zero Date sorts before every valid date. It does not
+    allocate.
+
+func (d Date) Day() int
+    Day returns the day of the month, 1..32, or 0 for the zero Date. It does not
+    allocate.
+
+func (d Date) DaysUntil(other Date) int
+    DaysUntil returns the signed number of days from d to other (PARITY D-07):
+    positive when other is later. It returns 0 if either date is the zero Date.
+    It does not allocate.
+
+func (d Date) Diff(other Date) Diff
+    Diff returns the years, months and days from d to other: the largest whole
+    number of months that, added to the earlier date with Clamp, doesn't pass
+    the later one, then the remaining days. It returns the zero Diff if either
+    date is the zero Date. It does not allocate.
+
+func (d Date) FirstOfMonth() Date
+    FirstOfMonth returns the first day of d's month, or the zero Date for the
+    zero Date. It does not allocate.
+
+func (d Date) FiscalYear() FiscalYear
+    FiscalYear returns the fiscal year that contains d, or 0 for the zero Date.
+    It does not allocate.
+
+func (d Date) Format(pattern string, lang Lang) string
+    Format returns d formatted by pattern (shared/spec/FORMATTING.md §5) in
+    lang, or "" for the zero Date. The single-letter patterns "", "G", "g" and
+    "d" give "YYYY/MM/DD", "D" the default Long format and "s" "YYYY-MM-DD".
+    Any other pattern is read left to right: runs of y, M and d are the year,
+    month and day; '...' and \x are literal; everything else is copied.
+
+func (d Date) Gregorian() (year int, month time.Month, day int)
+    Gregorian returns the AD date of d, or (0, 0, 0) for the zero Date. It does
+    not allocate.
+
+func (d Date) IsZero() bool
+    IsZero reports whether d is the zero Date, which is "no date". It does not
+    allocate.
+
+func (d Date) LastOfMonth() Date
+    LastOfMonth returns the last day of d's month, or the zero Date for the zero
+    Date. It does not allocate.
+
+func (d Date) Long(opts LongOptions, lang Lang) string
+    Long returns d as "[Weekday, ]Month DD[, YYYY]" in lang (FORMATTING §4),
+    or "" for the zero Date.
+
+func (d Date) MarshalText() ([]byte, error)
+    MarshalText returns d as "YYYY-MM-DD" (PARITY D-11), so encoding/json
+    and other encoders write a Date as a string and accept it as a map key.
+    It returns ErrOutOfRange for the zero Date.
+
+func (d Date) Month() Month
+    Month returns the BS month, or 0 for the zero Date. It does not allocate.
+
+func (d Date) MonthLength() int
+    MonthLength returns the number of days in d's month, 29..32, or 0 for the
+    zero Date. It does not allocate.
+
+func (d Date) Next() (Date, bool)
+    Next returns the day after d, or (Date{}, false) at Max and for the zero
+    Date. It does not allocate.
+
+func (d Date) Prev() (Date, bool)
+    Prev returns the day before d, or (Date{}, false) at Min and for the zero
+    Date. It does not allocate.
+
+func (d Date) Quarter() Quarter
+    Quarter returns the fiscal quarter that contains d, or 0 for the zero Date.
+    It does not allocate.
+
+func (d Date) Short(o DateOrder, sep Separator, pad bool, lang Lang) string
+    Short returns the three numbers of d in order o, separated by sep,
+    in lang's digits. With pad the year has 4 digits and the month and day 2.
+    It returns "" for the zero Date or an unknown order or separator.
+
+func (d Date) String() string
+    String returns d as "YYYY/MM/DD" with ASCII digits (FORMATTING §2), or ""
+    for the zero Date.
+
+func (d Date) Time(loc *time.Location) time.Time
+    Time returns midnight at the start of d in loc, or in UTC when loc is nil.
+    The zero Date returns the zero time.Time.
+
+func (d *Date) UnmarshalText(text []byte) error
+    UnmarshalText sets *d from text in the strict form Parse accepts. On error
+    *d is unchanged. It parses the bytes directly, so it does not allocate on
+    success.
+
+func (d Date) Weekday() time.Weekday
+    Weekday returns the day of the week of d (ALGORITHM §7). The zero Date
+    returns Sunday, the zero value of time.Weekday. It does not allocate.
+
+func (d Date) Year() int
+    Year returns the BS year, 1901..2199, or 0 for the zero Date. It does not
+    allocate.
+
+func (d Date) YearDay() int
+    YearDay returns the day of the BS year, 1 for Baishakh 1, or 0 for the zero
+    Date. It does not allocate.
+
+type DateOrder uint8
+    DateOrder is the order of the three numbers in Short
+    (shared/spec/FORMATTING.md §3).
+
+const (
+	YMD DateOrder = iota
+	YDM
+	MYD
+	MDY
+	DYM
+	DMY
+)
+    The six orders, in C#'s DateFormats order.
+
+type Diff struct {
+	Negative bool // the other date is earlier
+	// Years, Months and Days are the non-negative magnitudes.
+	Years, Months, Days int
+	TotalDays           int // the signed day count, the same as DaysUntil
+}
+    Diff is the calendar distance between two dates (ALGORITHM §8a). Years,
+    Months and Days are magnitudes; Negative and TotalDays carry the sign.
+
+type FiscalYear int
+    FiscalYear is a Nepal fiscal year, Shrawan 1 to the end of Ashad, named
+    by its starting BS year: FY 2082/83 is FiscalYear(2082) (ALGORITHM §8b,
+    PARITY D-08).
+
+func FiscalYearOf(d Date) FiscalYear
+    FiscalYearOf returns the fiscal year that contains d, or 0 for the zero
+    Date. It does not allocate.
+
+func (f FiscalYear) End() (Date, error)
+    End returns the last day of Ashad of f+1. It returns ErrOutOfRange if that
+    day is outside the range. It does not allocate.
+
+func (f FiscalYear) Label(lang Lang) string
+    Label returns the usual name of f, "2082/83" in English or "२०८२/८३" in
+    Nepali. It does not allocate.
+
+func (f FiscalYear) QuarterRange(q Quarter) (Range, error)
+    QuarterRange returns the days of quarter q of f. It returns ErrOutOfRange
+    if the quarter is outside the supported range, and also if q is not Q1..Q4:
+    ErrOutOfRange is the error for any argument outside the supported domain.
+    It does not allocate.
+
+func (f FiscalYear) Range() (Range, error)
+    Range returns every day of f. It returns ErrOutOfRange if either end is
+    outside the range. It does not allocate.
+
+func (f FiscalYear) Start() (Date, error)
+    Start returns Shrawan 1 of f. It returns ErrOutOfRange if that day is
+    outside the range. It does not allocate.
+
+type Lang uint8
+    Lang selects the language of names and digits in formatted output.
+
+const (
+	English Lang = iota
+	Nepali
+)
+    The supported languages. English uses ASCII digits, Nepali uses Devanagari
+    digits.
+
+func (l Lang) AppendDigits(b []byte, n, minWidth int) []byte
+    AppendDigits appends n in decimal to b and returns the extended slice.
+    Nepali writes Devanagari digits (U+0966 to U+096F), English writes ASCII
+    digits. The number is zero-padded to at least minWidth digits; minWidth
+    counts digits, not bytes. A negative n gets a leading '-'. It does not
+    allocate when b has room.
+
+type LongOptions struct {
+	Weekday  bool // start with the weekday name
+	OmitYear bool // leave out ", <year>"
+	NoPad    bool // write the day without a leading zero
+}
+    LongOptions changes Long. The zero value is C#'s default: no weekday,
+    year shown, day padded to 2 digits.
+
+type Month uint8
+    Month is a Bikram Sambat month, Baishakh = 1 to Chaitra = 12.
+
+const (
+	Baishakh Month = 1 + iota
+	Jestha
+	Ashad
+	Shrawan
+	Bhadra
+	Ashoj
+	Kartik
+	Mangsir
+	Poush
+	Magh
+	Falgun
+	Chaitra
+)
+    The twelve BS months.
+
+func (m Month) Name(lang Lang) string
+    Name returns the month's full name in lang, or "" if m is not 1..12 or lang
+    is unknown. It does not allocate.
+
+func (m Month) ShortName(lang Lang) string
+    ShortName returns the three-letter English abbreviation, or the full Nepali
+    name for Nepali, which has no customary abbreviation. Ashad is "Asa" and
+    Ashoj is "Aso" (PARITY D-04). It returns "" if m is not 1..12 or lang is
+    unknown. It does not allocate.
+
+func (m Month) String() string
+    String returns the English name of the month, or "" if m is not 1..12.
+
+type Overflow uint8
+    Overflow says what AddMonths and AddYears do when the day doesn't exist in
+    the target month (ALGORITHM §8).
+
+const (
+	// Clamp moves the day back to the last day of the target month, like C# AddMonths(n).
+	Clamp Overflow = iota
+	// Spill carries the extra days into the next month, like C# AddMonths(n, awayFromMonthEnd:
+	// true). The spec calls this mode Overflow.
+	Spill
+)
+    The overflow modes.
+
+type ParseError struct {
+	// Input is the text that failed to parse.
+	Input string
+	// Kind is the syntax rule that failed.
+	Kind ParseErrorKind
+}
+    ParseError is returned when the input is not a date in the accepted syntax.
+    A string that parses but names an invalid date returns ErrOutOfRange,
+    ErrInvalidMonth or ErrInvalidDay instead.
+
+func (e *ParseError) Error() string
+    Error returns a message naming the input and the kind.
+
+type ParseErrorKind uint8
+    ParseErrorKind says why the syntax step of Parse or ParseLenient failed
+    (shared/spec/PARSING.md §4).
+
+const (
+	InvalidCharacter ParseErrorKind = iota + 1 // a character no rule accepts
+	WrongGroupCount                            // not exactly three groups
+	NumberTooLong                              // a number with more than 4 digits
+	Ambiguous                                  // the input fits more than one reading
+	Unrecognized                               // the lenient rules found no date
+)
+    The parse error kinds.
+
+type Quarter uint8
+    Quarter is a quarter of the fiscal year, Q1 = Shrawan to Ashoj up to Q4 =
+    Baishakh to Ashad.
+
+const (
+	Q1 Quarter = 1 + iota
+	Q2
+	Q3
+	Q4
+)
+    The fiscal quarters.
+
+func (q Quarter) Months() [3]Month
+    Months returns the three months of q in order, or three zero Months if q is
+    not Q1..Q4. It does not allocate.
+
+type Range struct {
+	// Has unexported fields.
+}
+    Range is an inclusive span of dates, start <= end. The zero Range is empty.
+    It has no set operations (PARITY D-09): range over Days and filter instead.
+
+func MonthRange(year int, month Month) (Range, error)
+    MonthRange returns every day of the given BS month. It returns New's errors
+    for an invalid year or month. It does not allocate.
+
+func NewRange(start, end Date) (Range, bool)
+    NewRange returns the range start..end. It returns false if start is after
+    end or either date is the zero Date. It does not allocate.
+
+func YearRange(year int) (Range, error)
+    YearRange returns every day of the BS year, Baishakh 1 to the last day of
+    Chaitra. It returns ErrOutOfRange for a year outside 1901..2199. It does not
+    allocate.
+
+func (r Range) Contains(d Date) bool
+    Contains reports whether d is in r. The zero Date is in no range. It does
+    not allocate.
+
+func (r Range) Days() iter.Seq[Date]
+    Days returns an iterator over the days of r in order. It does not allocate
+    when ranged over directly (ADR-0002 §6).
+
+func (r Range) End() Date
+    End returns the last day of r, or the zero Date for the zero Range. It does
+    not allocate.
+
+func (r Range) Len() int
+    Len returns the number of days in r, counting both ends, or 0 for the zero
+    Range. It does not allocate.
+
+func (r Range) Start() Date
+    Start returns the first day of r, or the zero Date for the zero Range.
+    It does not allocate.
+
+type Separator uint8
+    Separator is the character between the numbers in Short.
+
+const (
+	Slash Separator = iota
+	Backslash
+	Dot
+	Underscore
+	Dash
+	Space
+)
+    The separators: '/', '\', '.', '_', '-' and ' '.
+

@@ -1,0 +1,70 @@
+package patro // import "github.com/sanamhub/nepdate-go/patro"
+
+Package patro is the Nepali almanac (पात्रो) for package nepdate: the tithi
+(lunar day), the public holiday flag and the events of a BS date.
+
+Data covers BS 2077-01-01 to 2084-08-20 (see Coverage); dates outside it have no
+tithi, no holiday and no events. The tables are compiled in, so no lookup reads
+a file or allocates. Package nepdate never imports this package, so a program
+that only converts dates links none of this data.
+
+FUNCTIONS
+
+func Coverage() nepdate.Range
+    Coverage returns the smallest range that contains every day with almanac
+    data, BS 2077-01-01 to 2084-08-20 with today's data. It does not allocate.
+
+func PublicHolidays() iter.Seq[nepdate.Date]
+    PublicHolidays returns every public holiday in ascending order. Ranging over
+    it directly does not allocate.
+
+
+TYPES
+
+type Event struct {
+	// Has unexported fields.
+}
+    Event is a named event or festival. The zero Event has no name.
+
+func (e Event) Name(lang nepdate.Lang) string
+    Name returns the event name in lang, or "" for the zero Event or an unknown
+    lang. It does not allocate.
+
+type Info struct {
+	// Has unexported fields.
+}
+    Info is the almanac entry of one date. The zero Info is empty.
+
+func Of(d nepdate.Date) Info
+    Of returns the almanac entry of d. It never fails: the zero Date and dates
+    outside Coverage return the empty Info. It does not allocate.
+
+func (i Info) Event(n int) Event
+    Event returns the n-th event of the day in file order, or the zero Event
+    (Name "") if n is out of range. Looping over EventCount and Event needs no
+    closure, unlike Events. It does not allocate.
+
+func (i Info) EventCount() int
+    EventCount returns the number of events of the day. It does not allocate.
+
+func (i Info) Events() iter.Seq[Event]
+    Events returns the events of the day in file order. Ranging over it directly
+    does not allocate.
+
+func (i Info) IsPublicHoliday() bool
+    IsPublicHoliday reports whether the day is a gazetted public holiday.
+    It does not allocate.
+
+func (i Info) Tithi() (Tithi, bool)
+    Tithi returns the tithi of the day, and false if the day has none. It does
+    not allocate.
+
+type Tithi struct {
+	// Has unexported fields.
+}
+    Tithi is a lunar day name. The zero Tithi has no name.
+
+func (t Tithi) Name(lang nepdate.Lang) string
+    Name returns the tithi name in lang, or "" for the zero Tithi or an unknown
+    lang. It does not allocate.
+

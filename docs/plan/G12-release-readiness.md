@@ -111,6 +111,17 @@ AC:
   1.27.1 the line stays `1 reduced (tests without -race)`.
 - `TestGoDocReduced` covers 1.24.13, 1.27.0, 1.27.1 and 1.27.2.
 
+Result on 2026-10-18: `docs/godoc/nepdate.txt` is 18,482 bytes and `patro.txt` is 2,479 bytes, both
+made with Go 1.27.1. `TestGoDocPreview` compares both byte for byte and passes. Under Go 1.24.13 it
+prints `godoc_test.go:20: pkg.go.dev preview needs go1.27.1, this is go1.24.13` and `--- SKIP`.
+Under Go 1.27.2 the full run ends with
+`ci: 9/9 gates passed, 2 reduced (pkg.go.dev preview (needs go1.27.1), tests without -race)`.
+
+Control: a temporary sentence in the `doc.go` package comment made the test fail with
+`docs/godoc/nepdate.txt is stale; regenerate with ...` and the first differing line. Removing the
+sentence restored the pass. The test cache does not hash comments, so gate 3 now runs
+`go test -count=1` and a doc-only change cannot hide behind a cached pass.
+
 ### G12-04 Draft release notes
 Create `docs/release/0.1.0-notes.md` as a draft candidate only. It merges the existing
 `[0.1.0]` section with the `[Unreleased]` items, uses `## [0.1.0] - 2026-10-18`, and starts with a
