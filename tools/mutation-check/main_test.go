@@ -124,12 +124,12 @@ func TestBaselineLowerCountFails(t *testing.T) {
 
 func TestBaselineMissingKeyFails(t *testing.T) {
 	path := baselineFile(t, sampleReport())
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // a baseline this test wrote in t.TempDir()
 	if err != nil {
 		t.Fatal(err)
 	}
 	data = append(data, []byte("fiscal.go\tARITHMETIC_BASE\tNOT COVERED\t1\n")...)
-	if err := os.WriteFile(path, data, 0o644); err != nil {
+	if err := os.WriteFile(path, data, 0o600); err != nil { //nolint:gosec // a baseline this test wrote in t.TempDir()
 		t.Fatal(err)
 	}
 	_, err = runSummary(t, sampleReport(), 0, false, path)

@@ -42,6 +42,14 @@ AC:
 - Lint and vulnerability findings are fixed, not blanket-suppressed.
 - The progress row records the race result.
 
+Local result on 2026-10-18: golangci-lint v2.14.0 reports 0 issues, govulncheck v1.9.0 finds 0 called
+vulnerabilities, and the last line is `ci: 8/8 gates passed`. The install used `GOBIN`, `GOPATH` and
+`GOCACHE` under `D:\devcache\g9`.
+
+`-race` does not run on Windows locally: `CGO_ENABLED=0` and there is no C compiler on D:. A full
+mingw-w64 install would add a system toolchain outside the D: cache rule, so it was not installed.
+WSL Ubuntu has gcc 15.2.0, and `go test -race -shuffle=on ./...` passes there.
+
 ### G9-02 Patro mutation
 Extend `tools/mutation-check` with `-package=core|patro`, defaulting to `core`. Each package has its
 own canonical baseline, `survivors.txt` for `nepdate` and `survivors-patro.txt` for `patro`. The
