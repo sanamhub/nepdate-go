@@ -149,19 +149,31 @@ func TestRunGatesCountsSkipsSeparately(t *testing.T) {
 }
 
 func TestSummaryNamesSkippedGates(t *testing.T) {
+	race := []string{"tests without -race"}
 	cases := []struct {
 		passed, total int
 		skipped       []string
+		reduced       []string
 		want          string
 	}{
-		{8, 8, nil, "ci: 8/8 gates passed"},
-		{6, 8, []string{"golangci-lint", "govulncheck"}, "ci: 6/8 gates passed, 2 skipped (golangci-lint, govulncheck)"},
-		{2, 8, []string{"golangci-lint"}, "ci: 2/8 gates passed, 1 skipped (golangci-lint)"},
+		{8, 8, nil, nil, "ci: 8/8 gates passed"},
+		{6, 8, []string{"golangci-lint", "govulncheck"}, nil, "ci: 6/8 gates passed, 2 skipped (golangci-lint, govulncheck)"},
+		{2, 8, []string{"golangci-lint"}, nil, "ci: 2/8 gates passed, 1 skipped (golangci-lint)"},
+		{8, 8, nil, race, "ci: 8/8 gates passed, 1 reduced (tests without -race)"},
+		{7, 8, []string{"govulncheck"}, race, "ci: 7/8 gates passed, 1 skipped (govulncheck), 1 reduced (tests without -race)"},
 	}
 	for _, c := range cases {
-		if got := summary(c.passed, c.total, c.skipped); got != c.want {
-			t.Errorf("summary(%d, %d, %v) = %q, want %q", c.passed, c.total, c.skipped, got, c.want)
+		if got := summary(c.passed, c.total, c.skipped, c.reduced); got != c.want {
+			t.Errorf("summary(%d, %d, %v, %v) = %q, want %q", c.passed, c.total, c.skipped, c.reduced, got, c.want)
 		}
+	}
+}
+
+func TestRunGatesResetsReduced(t *testing.T) {
+	reduced = []string{"left over from an earlier run"}
+	runGates([]gate{{"a", func() error { return nil }}})
+	if len(reduced) != 0 {
+		t.Errorf("reduced = %v after a run with no reduced gate", reduced)
 	}
 }
 

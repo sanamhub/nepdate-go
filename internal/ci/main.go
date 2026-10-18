@@ -4,7 +4,8 @@
 //	go run ./internal/ci release-check v0.1.0  check CHANGELOG.md has a dated 0.1.0 section
 //
 // The last line is always "ci: <passed>/<total> gates passed", followed by ", <n> skipped (<names>)"
-// when an optional tool is missing. A skipped gate is never counted as passed.
+// when an optional tool is missing and ", <n> reduced (<what>)" when a gate ran with less than CI
+// runs, such as the tests without -race. A skipped gate is never counted as passed.
 package main
 
 import (
@@ -68,8 +69,13 @@ func gates() []gate {
 // errSkipped marks a gate that did not run. runGates reports it as skipped, not passed.
 var errSkipped = errors.New("gate skipped")
 
+// reduced lists what a passing gate left out on this machine; runGates resets it and summary
+// prints it, so a local pass without -race does not read like the CI run.
+var reduced []string
+
 func runGates(gs []gate) int {
 	passed := 0
+	reduced = nil
 	var skipped []string
 	for i, g := range gs {
 		fmt.Printf("ci: gate %d/%d: %s\n", i+1, len(gs), g.name)
@@ -80,22 +86,25 @@ func runGates(gs []gate) int {
 			skipped = append(skipped, g.name)
 		case err != nil:
 			fmt.Fprintf(os.Stderr, "ci: gate %d (%s) failed: %v\n", i+1, g.name, err)
-			fmt.Println(summary(passed, len(gs), skipped))
+			fmt.Println(summary(passed, len(gs), skipped, reduced))
 			return 1
 		default:
 			passed++
 		}
 	}
-	fmt.Println(summary(passed, len(gs), skipped))
+	fmt.Println(summary(passed, len(gs), skipped, reduced))
 	return 0
 }
 
-// summary is the last line of a run. It names the skipped gates so a partial run never reads as a
-// full pass.
-func summary(passed, total int, skipped []string) string {
+// summary is the last line of a run. It names the skipped gates and the reduced checks so a
+// partial run never reads as a full pass.
+func summary(passed, total int, skipped, reducedChecks []string) string {
 	line := fmt.Sprintf("ci: %d/%d gates passed", passed, total)
 	if len(skipped) > 0 {
 		line += fmt.Sprintf(", %d skipped (%s)", len(skipped), strings.Join(skipped, ", "))
+	}
+	if len(reducedChecks) > 0 {
+		line += fmt.Sprintf(", %d reduced (%s)", len(reducedChecks), strings.Join(reducedChecks, ", "))
 	}
 	return line
 }
@@ -157,6 +166,7 @@ func testGate() error {
 		args = []string{"test", "-race", "-shuffle=on", "./..."}
 	} else {
 		fmt.Printf("ci: warning: race detector needs cgo on amd64 or arm64 (CGO_ENABLED=%s, GOARCH=%s); running without -race\n", cgo, arch)
+		reduced = append(reduced, "tests without -race")
 	}
 	if err := command("go", args...); err != nil {
 		return err
