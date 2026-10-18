@@ -6,14 +6,15 @@ reviewer reads it in about an hour. Task IDs `G<phase>-<n>`; branch `feat/G1-04-
 
 ```
 G0 repo + CI ─► G1 core + conversion ─► G2 arithmetic/fiscal/range ─┐
-                         └────────────► G3 format + parse ───────────┴─► G4 patro + interop ──► G5 docs, bench, release ──► G6 publish readiness ──► G7 B6 fast path ──► G8 mutation testing ──► G9 mutation scope and local gates ──► G10 fuzz automation and API gate
+                         └────────────► G3 format + parse ───────────┴─► G4 patro + interop ──► G5 docs, bench, release ──► G6 publish readiness ──► G7 B6 fast path ──► G8 mutation testing ──► G9 mutation scope and local gates ──► G10 fuzz automation and API gate ──► G11 examples and minimum Go version
 ```
 
 Preconditions: hub task H0 merged, so `shared/VERSION` holds a hub commit SHA instead of `pending`;
 hub H3 (reusable `shared-check` and `shared-sync`) merged before G0-05. G2 and G3 may run in
 parallel; G4 needs both. Phases G0 to G5 map one to one onto `shared/spec/PORT-PLAN.md` phases 0
-to 5; G6 to G10 are follow-up phases: publish readiness, the B6 fast path, mutation testing,
-mutation scope with honest local gates, and fuzz automation with an API compatibility gate. Hub
+to 5; G6 to G11 are follow-up phases: publish readiness, the B6 fast path, mutation testing,
+mutation scope with honest local gates, fuzz automation with an API compatibility gate, and
+runnable examples with a tested minimum Go version. Hub
 H5 (C# test catalogue) is needed for the `TestCSharp` AC of G1 to G4 and hub H6 (C# benchmark
 baseline) for the C# column in G5; if either is missing when a phase starts, do the rest of the
 phase and report that AC as blocked at the checkpoint.
@@ -34,6 +35,7 @@ waits for the human review; it does not start the next phase on its own.
 | G8 | `G8-mutation-testing.md` | Gremlins on the core package, survivor tests, mutation gate |
 | G9 | `G9-mutation-scope.md` | local gates with no skips, patro mutation, switch-case survivors, negative controls |
 | G10 | `G10-fuzz-api.md` | fuzz inventory and runner, weekly fuzz job, apidiff snapshot and API gate |
+| G11 | `G11-examples-minver.md` | Go 1.24 test run and CI entry, examples for the public surface, example gate |
 
 ## Definition of Done (every task)
 

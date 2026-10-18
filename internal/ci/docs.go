@@ -32,7 +32,7 @@ func docsGate() error {
 		return docsError(issues)
 	}
 	fmt.Printf("ci: %d documents checked\n", n)
-	return nil
+	return exampleGate()
 }
 
 func docsError(issues []docIssue) error {

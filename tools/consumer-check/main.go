@@ -233,8 +233,13 @@ func moduleRoot() (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-// outsideRepo reports an error when dir is inside root. A sibling directory is outside.
+// outsideRepo reports an error when dir is inside root. A sibling directory is outside, and so is
+// any directory on another Windows volume: filepath.Rel cannot compare those, but the OS temp
+// directory is often on C: while the checkout is on another drive.
 func outsideRepo(root, dir string) error {
+	if differentVolume(root, dir) {
+		return nil
+	}
 	rel, err := filepath.Rel(root, dir)
 	if err != nil {
 		return err
@@ -243,6 +248,16 @@ func outsideRepo(root, dir string) error {
 		return fmt.Errorf("%s is inside the repository %s; the consumer module must be outside", dir, root)
 	}
 	return nil
+}
+
+// differentVolume reports whether two absolute paths name different Windows volumes. On a platform
+// without volume names both are empty, so it returns false.
+func differentVolume(a, b string) bool {
+	va, vb := filepath.VolumeName(a), filepath.VolumeName(b)
+	if va == "" || vb == "" {
+		return false
+	}
+	return !strings.EqualFold(va, vb)
 }
 
 // sameDir reports whether a and b are the same directory, following the platform's case rules.
