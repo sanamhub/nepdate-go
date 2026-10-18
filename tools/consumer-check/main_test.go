@@ -56,7 +56,7 @@ func TestOutsideRepoDifferentVolume(t *testing.T) {
 	if err := outsideRepo(`D:\checkout`, `C:\Users\runner\Temp\consumer`); err != nil {
 		t.Errorf("a directory on another volume failed: %v", err)
 	}
-	if err := outsideRepo(`\\host\share\checkout`, `\\host\other\consumer`); err != nil {
+	if err := outsideRepo(`\\host\share\checkout`, `\\host\builds\consumer`); err != nil {
 		t.Errorf("a directory on another UNC share failed: %v", err)
 	}
 	// The same volume spelled in another case is still the same volume.
