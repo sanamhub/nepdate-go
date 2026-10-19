@@ -199,24 +199,29 @@ AC:
   is explained.
 
 ### G8b-03 Release rule
-A tag is only made from a `main` commit whose `ci` run, including the `mutation` job, is green.
-The same sentence is in `docs/runbooks/release.md`.
+A tag is only made from a `main` commit whose `ci` run, including the `mutation` job, is green. The
+same sentence is in `docs/runbooks/release.md`.
 
-Review follow-up: the rule was a manual check. `release.yml` now has its own `mutation` job, and
-the `release` job needs it next to `ci`, `lint`, `govulncheck` and `consumer`, so the workflow
-enforces the rule. Both mutation jobs pin Go 1.27.1, the version the baseline was measured with,
-because a toolchain patch can move coverage mapping; a Go bump re-runs `-update` in the same PR.
+`release.yml` does not run the mutation gate itself. It repeats the release checks, the
+`internal/ci` gates, lint, govulncheck, the API snapshot check, the fuzz budget and the consumer
+check, and the release job waits for those jobs. The mutation gate stays in the `mutation` job of
+`ci.yml`, which runs on every `main` push. The core and patro mutation steps pin Go 1.27.1 because a
+toolchain patch can move coverage mapping.
 
-No ADR is added. ADR-0004 lists gates 1 to 6 and ADR-0006 adds gates 7 and 8. The mutation job is
-outside `internal/ci`, so neither gate list changes. ADR-0005 already says tags are made on `main`
-and the release workflow runs full CI. A new ADR would repeat a process rule without recording a
-changed decision.
+Review correction: an earlier follow-up added a `mutation` job to `release.yml`, against this rule.
+It is removed. The release workflow no longer runs mutation.
+
+No ADR is added. ADR-0004 lists gates 1 to 6 and ADR-0006 adds gates 7 and 8; G10 later adds gate 9
+in ADR-0007. The mutation job is outside `internal/ci`, so no gate list changes. ADR-0005 already
+says tags are made on `main` and the release workflow runs CI. A new ADR would repeat a process rule
+without recording a changed decision.
 
 AC:
 - The plan and `docs/runbooks/release.md` state the release rule.
+- `release.yml` has no mutation job and its release job does not need one.
 - The mutation job remains outside `internal/ci`; no ADR is added because the gate list is
   unchanged.
-- `ci: 8/8 gates passed`.
+- `ci: 8/8 gates passed` at G8b; later phases add gate 9.
 
 ## Out of scope
 

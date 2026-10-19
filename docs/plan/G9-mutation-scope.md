@@ -56,9 +56,11 @@ own canonical baseline, `survivors.txt` for `nepdate` and `survivors-patro.txt` 
 same exact-count rule and 99.5 % efficacy gate apply, with at most four workers. `-json` evaluates
 the report against the selected package's baseline.
 
-Run both packages in CI and in the release workflow. Measure on Windows and on WSL Ubuntu with an
-in-distro toolchain, as in G8b-02. Kill every real survivor with a test, or explain why it is
-equivalent, unreachable or non-viable. Production code is never weakened to raise the score.
+Run both packages in CI. The release workflow does not run the mutation gate; a tag is only made
+from a `main` commit whose `ci` run, including the `mutation` job, is green. Measure on Windows and
+on WSL Ubuntu with an in-distro toolchain, as in G8b-02. Kill every real survivor with a test, or
+explain why it is equivalent, unreachable or non-viable. Production code is never weakened to raise
+the score.
 
 AC:
 - `go run ./tools/mutation-check -package=core` and `-package=patro` both pass.
