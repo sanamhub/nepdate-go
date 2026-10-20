@@ -86,6 +86,25 @@ jobs:
       - name: Broken import fails
         run: go run ./tools/consumer-check -negative
 
+  mutation:
+    # The same mutation gate as ci.yml, so a tag cannot release a commit whose survivor baselines
+    # do not hold. Go is pinned to the version the baselines were measured with.
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.1"
+          cache: false
+      - name: Core mutation gate
+        run: go run ./tools/mutation-check -package=core -workers=4
+      - name: Patro mutation gate
+        run: go run ./tools/mutation-check -package=patro -workers=4
+
   api:
     # The same API gate as ci.yml, so a tag cannot remove or change an exported identifier.
     needs: preflight
@@ -171,7 +190,7 @@ jobs:
     # A dispatched run stops at preflight and CI; the release and proxy jobs only run for a tag.
     # A dispatch started from a tag ref is still a dry run; only a tag push releases.
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-    needs: [ci, lint, govulncheck, consumer, fuzz, api]
+    needs: [ci, lint, govulncheck, consumer, mutation, fuzz, api]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
