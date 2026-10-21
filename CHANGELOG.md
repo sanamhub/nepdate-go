@@ -6,18 +6,9 @@ All notable changes to this module are recorded here. The format follows
 
 ## [Unreleased]
 
-### Added
+## [0.1.0-beta.1] - 2026-10-21
 
-- Runnable examples for every exported function and type, including arithmetic, fiscal years,
-  ranges, JSON marshalling and the patro queries.
-- CI tests the minimum supported version, Go 1.24.13 (ADR-0008).
-
-### Changed
-
-- Strict parsing of the `YYYY/MM/DD` text form uses a fast path, so `Parse` and `ParseLenient` are
-  faster on that form. Other forms and all errors are unchanged.
-
-## [0.1.0] - 2026-10-17
+First public pre-release. The API may still change before 0.1.0.
 
 ### Added
 
@@ -38,8 +29,11 @@ All notable changes to this module are recorded here. The format follows
 - Parsing: strict `Parse` (ASCII or Devanagari digits) and `ParseLenient` for month names, era
   markers and day-first dates.
 - Package `patro`: `Of`, `Info` with `Tithi`, `IsPublicHoliday`, `Events`, `EventCount` and
-  `Event`, `Coverage` and `PublicHolidays`, for BS 2077-01-01 to 2084-08-20. Package `nepdate`
-  doesn't import it.
+  `Event`, `Coverage` and `PublicHolidays`, for BS 2077-01-01 to 2084-08-20. Tithi names end
+  earlier, at BS 2083-12-30 (AD 2027-04-13). Package `nepdate` doesn't import it.
 - Text marshalling as `YYYY-MM-DD` (`MarshalText`, `AppendText`, `UnmarshalText`), so a `Date`
   works with `encoding/json`, including as a map key.
 - `FromTime`, `Date.Time` and `Today`.
+- Runnable examples for every exported function and type, including arithmetic, fiscal years,
+  ranges, JSON marshalling and the patro queries.
+- Go 1.24 or later. CI tests the minimum supported version, Go 1.24.13 (ADR-0008).
