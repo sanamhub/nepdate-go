@@ -104,9 +104,46 @@ func TestReleaseReadinessNegativeControls(t *testing.T) {
 // TestReleaseReadinessRepo runs the check on the real repository files, so drift between the
 // README, ADR-0008, ci.yml and go.mod fails the normal test gate, not only a release. go list is
 // replaced because the module list is covered by the negative control above.
+// TestReleaseReadinessRepo checks the repository's own release inputs against the newest dated
+// changelog section, so the test follows the changelog instead of naming a version.
 func TestReleaseReadinessRepo(t *testing.T) {
-	if err := releaseReadiness(filepath.Join("..", ".."), "v0.1.0", fixedModules(releaseModule+"\n")); err != nil {
-		t.Fatalf("repository release inputs: %v", err)
+	root := filepath.Join("..", "..")
+	changelog, err := os.ReadFile(filepath.Join(root, "CHANGELOG.md")) //nolint:gosec // the repository's own changelog
+	if err != nil {
+		t.Fatal(err)
+	}
+	version := newestReleasedVersion(string(changelog))
+	if version == "" {
+		t.Fatal("CHANGELOG.md has no dated version section")
+	}
+	if err := releaseReadiness(root, "v"+version, fixedModules(releaseModule+"\n")); err != nil {
+		t.Fatalf("repository release inputs for v%s: %v", version, err)
+	}
+}
+
+// newestReleasedVersion returns the version of the first "## [X] - YYYY-MM-DD" line, skipping
+// [Unreleased], or "" when there is none.
+func newestReleasedVersion(changelog string) string {
+	for _, line := range strings.Split(changelog, "\n") {
+		rest, ok := strings.CutPrefix(strings.TrimRight(line, "\r"), "## [")
+		if !ok {
+			continue
+		}
+		version, date, ok := strings.Cut(rest, "] - ")
+		if ok && dateSuffix.MatchString(date) {
+			return version
+		}
+	}
+	return ""
+}
+
+func TestNewestReleasedVersion(t *testing.T) {
+	log := "# Changelog\n\n## [Unreleased]\n\n## [0.1.0-beta.1] - 2026-10-21\n\n## [0.0.9] - 2026-01-01\n"
+	if got := newestReleasedVersion(log); got != "0.1.0-beta.1" {
+		t.Errorf("newestReleasedVersion = %q, want 0.1.0-beta.1", got)
+	}
+	if got := newestReleasedVersion("## [Unreleased]\n"); got != "" {
+		t.Errorf("newestReleasedVersion with no release = %q, want empty", got)
 	}
 }
 
