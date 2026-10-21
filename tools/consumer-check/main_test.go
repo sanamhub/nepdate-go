@@ -97,6 +97,42 @@ func TestWriteModule(t *testing.T) {
 	}
 }
 
+func TestWritePublishedModule(t *testing.T) {
+	dir := t.TempDir()
+	if err := writePublishedModule(dir, "v0.1.0-beta.1"); err != nil {
+		t.Fatal(err)
+	}
+	mod, err := os.ReadFile(filepath.Join(dir, "go.mod")) //nolint:gosec // a file this test just wrote
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(mod), "require "+modulePath+" v0.1.0-beta.1\n") {
+		t.Errorf("go.mod lacks the released version:\n%s", mod)
+	}
+	// A replace directive would point the check back at a checkout and prove nothing.
+	if strings.Contains(string(mod), "replace") {
+		t.Errorf("go.mod of a published check has a replace directive:\n%s", mod)
+	}
+}
+
+func TestPublishedEnvUsesOnlyThePublicProxy(t *testing.T) {
+	env := strings.Join(publishedEnv, "\n")
+	for _, want := range []string{"GOPROXY=https://proxy.golang.org", "GOSUMDB=sum.golang.org", "GOPRIVATE=", "GONOSUMDB="} {
+		if !strings.Contains(env, want+"\n") && !strings.HasSuffix(env, want) {
+			t.Errorf("publishedEnv lacks %q", want)
+		}
+	}
+	if strings.Contains(env, "direct") {
+		t.Error("publishedEnv allows a direct fetch, which would hide a version the proxy lacks")
+	}
+}
+
+func TestRunPublishedRejectsVersionWithoutV(t *testing.T) {
+	if err := runPublished("0.1.0", 0); err == nil {
+		t.Error("a version without the v prefix was accepted")
+	}
+}
+
 func TestWriteModuleBreaksImport(t *testing.T) {
 	dir := t.TempDir()
 	if err := writeModule(dir, t.TempDir(), brokenPath); err != nil {

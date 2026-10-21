@@ -6,9 +6,14 @@
 //	go run ./tools/consumer-check                 temporary module, removed on success
 //	go run ./tools/consumer-check -dir E:\temp\go-consumer
 //	go run ./tools/consumer-check -negative        break the import path and require failure
+//	go run ./tools/consumer-check -published v0.1.0-beta.1 -wait 30m
 //
 // The child runs with GOPROXY=off, so only the local replacement can satisfy the import. The
 // negative control proves the check runs the program instead of trusting a cached result.
+//
+// -published checks a released version instead: no replace directive, the module comes from
+// proxy.golang.org and its hash from sum.golang.org, the same path a user's go get takes. -wait
+// retries until the proxy serves the version, because a fresh tag can take minutes to appear.
 package main
 
 import (
@@ -20,6 +25,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 const (
@@ -68,9 +74,17 @@ func main() {
 func main() {
 	dir := flag.String("dir", "", "write the consumer module here instead of a temporary directory")
 	negative := flag.Bool("negative", false, "break the import path and require the build to fail")
+	published := flag.String("published", "", "check this released version from proxy.golang.org instead of the checkout")
+	wait := flag.Duration("wait", 0, "with -published, keep retrying for this long while the proxy lacks the version")
 	flag.Parse()
 
-	if err := run(*dir, *negative); err != nil {
+	var err error
+	if *published != "" {
+		err = runPublished(*published, *wait)
+	} else {
+		err = run(*dir, *negative)
+	}
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "consumer-check:", err)
 		os.Exit(1)
 	}
@@ -186,6 +200,87 @@ func goCommand(dir string, args ...string) *exec.Cmd {
 	cmd.Dir = dir
 	cmd.Env = withEnv(os.Environ(), "GOWORK=off", "GOPROXY=off", "GOFLAGS=-mod=mod", "GOTOOLCHAIN=local")
 	return cmd
+}
+
+// publishedEnv is the environment of a user's go get: the public proxy and checksum database,
+// nothing private, no workspace. Only proxy.golang.org is allowed, so a direct fetch from GitHub
+// cannot hide a version the proxy does not serve.
+var publishedEnv = []string{
+	"GOWORK=off", "GOPROXY=https://proxy.golang.org", "GOSUMDB=sum.golang.org",
+	"GONOSUMDB=", "GOPRIVATE=", "GOFLAGS=-mod=mod", "GOTOOLCHAIN=local",
+}
+
+// publishedCommand builds a go invocation in dir with publishedEnv.
+func publishedCommand(dir string, args ...string) *exec.Cmd {
+	cmd := exec.Command("go", args...) //nolint:gosec // the toolchain; the version is one argument
+	cmd.Dir = dir
+	cmd.Env = withEnv(os.Environ(), publishedEnv...)
+	return cmd
+}
+
+// runPublished builds the consumer against a released version. It retries the download until wait
+// has passed, then checks the resolved version, runs the program and checks its output.
+func runPublished(version string, wait time.Duration) error {
+	if !strings.HasPrefix(version, "v") {
+		return fmt.Errorf("version %q must start with v", version)
+	}
+	dir, err := os.MkdirTemp("", consumerDir)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.RemoveAll(dir) }()
+	if err := writePublishedModule(dir, version); err != nil {
+		return err
+	}
+	fmt.Println("consumer-check: module", dir)
+	fmt.Println("consumer-check: require", modulePath, version, "from proxy.golang.org")
+
+	deadline := time.Now().Add(wait)
+	for {
+		out, err := publishedCommand(dir, "mod", "download", modulePath+"@"+version).CombinedOutput()
+		if err == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("go mod download %s@%s: %w\n%s", modulePath, version, err, out)
+		}
+		fmt.Printf("consumer-check: the proxy does not serve %s yet, retrying in 30s\n", version)
+		time.Sleep(30 * time.Second)
+	}
+
+	got, err := publishedCommand(dir, "list", "-m", "-f", "{{.Version}}", modulePath).Output()
+	if err != nil {
+		return fmt.Errorf("go list -m: %w", err)
+	}
+	if v := strings.TrimSpace(string(got)); v != version {
+		return fmt.Errorf("%s resolved to %s, want %s", modulePath, v, version)
+	}
+
+	cmd := publishedCommand(dir, "run", ".")
+	var buf bytes.Buffer
+	cmd.Stdout = &buf
+	cmd.Stderr = &buf
+	err = cmd.Run()
+	fmt.Print(buf.String())
+	if err != nil {
+		return fmt.Errorf("the consumer failed: %w", err)
+	}
+	if err := checkOutput(buf.String()); err != nil {
+		return err
+	}
+	fmt.Println("consumer-check: ok:", modulePath, version, "from proxy.golang.org")
+	return nil
+}
+
+// writePublishedModule writes a go.mod that requires the released version with no replace
+// directive, and the same main.go as the local check.
+func writePublishedModule(dir, version string) error {
+	mod := "module consumercheck\n\ngo 1.24\n\nrequire " + modulePath + " " + version + "\n"
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(mod), 0o600); err != nil {
+		return err
+	}
+	src := strings.ReplaceAll(consumerSource, "IMPORT_PATH", modulePath)
+	return os.WriteFile(filepath.Join(dir, "main.go"), []byte(src), 0o600)
 }
 
 // withEnv replaces the values of the named keys in base and appends the rest.

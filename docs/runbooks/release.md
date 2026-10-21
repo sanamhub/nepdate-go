@@ -21,7 +21,7 @@ Decided in ADR-0005. Owner: maintainer. Approver: a second person.
 ## Dry run (no tag)
 
 `release.yml` also has a `workflow_dispatch` input `version`. Running it with `version: vX.Y.Z`
-runs the preflight and full CI and skips the release and proxy jobs, so a version can be checked
+runs the preflight and full CI and skips the release and verify jobs, so a version can be checked
 before the human tags it. Trigger it from the Actions tab, or run the preflight locally with
 `go run ./internal/ci release-check vX.Y.Z`. The dispatch path needs the GitHub remote.
 
@@ -33,8 +33,20 @@ git push origin vX.Y.Z
 ```
 
 `release.yml` runs preflight, CI, the API snapshot check and the fuzz budget, waits for the
-`production` approval, creates the GitHub Release from the changelog section, and asks
-proxy.golang.org to fetch the version.
+`production` approval and creates the GitHub Release from the changelog section, with install and
+verification notes. Then it calls `verify-published.yml`, which fetches the version through
+proxy.golang.org and sum.golang.org with no replace directive (`go run ./tools/consumer-check
+-published vX.Y.Z`) and converts a date and reads a patro event on Linux, macOS and Windows. It
+waits up to 30 minutes for the proxy. `verify-published.yml` can also be run by hand from the
+Actions tab for any released version.
+
+## Pre-releases
+
+A tag with a semver pre-release part, such as `v0.1.0-beta.1`, goes through the same workflow. The
+changelog section is `## [0.1.0-beta.1] - YYYY-MM-DD`; a stable section does not satisfy a beta tag
+and the other way round. The GitHub Release is marked as a pre-release. The go command prefers a
+stable version for `@latest`, but while no stable version exists, `@latest` resolves to the highest
+pre-release, so the first beta is what a plain `go get` installs until 0.1.0 ships.
 
 ## After releasing
 

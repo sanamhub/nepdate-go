@@ -56,6 +56,39 @@ func TestReleaseCheckNeedsDate(t *testing.T) {
 	}
 }
 
+func TestTagPattern(t *testing.T) {
+	for tag, ok := range map[string]bool{
+		"v0.1.0":         true,
+		"v0.1.0-beta.1":  true,
+		"v1.2.3-rc.10":   true,
+		"v0.1.0-0.3.7":   true,
+		"v0.1.0-":        false,
+		"v0.1.0-beta..1": false,
+		"v0.1.0-beta.01": false,
+		"v0.1.0-beta_1":  false,
+		"v0.1.0+build.1": false,
+		"0.1.0-beta.1":   false,
+	} {
+		if tagPattern.MatchString(tag) != ok {
+			t.Errorf("tagPattern.MatchString(%q) = %v, want %v", tag, !ok, ok)
+		}
+	}
+}
+
+func TestReleaseCheckPrerelease(t *testing.T) {
+	log := "## [0.1.0-beta.1] - 2026-10-21\n"
+	if err := releaseCheck(log, "v0.1.0-beta.1"); err != nil {
+		t.Errorf("beta section rejected: %v", err)
+	}
+	// Neither the stable tag nor the beta tag may borrow the other's section.
+	if err := releaseCheck(log, "v0.1.0"); err == nil {
+		t.Error("v0.1.0 accepted with only a 0.1.0-beta.1 section")
+	}
+	if err := releaseCheck("## [0.1.0] - 2026-10-21\n", "v0.1.0-beta.1"); err == nil {
+		t.Error("v0.1.0-beta.1 accepted with only a 0.1.0 section")
+	}
+}
+
 func TestCoverageOf(t *testing.T) {
 	out := "ok  \tgithub.com/sanamhub/nepdate-go\t0.3s\tcoverage: 93.4% of statements\n" +
 		"ok  \tgithub.com/sanamhub/nepdate-go/patro\t0.2s\tcoverage: [no statements]\n"

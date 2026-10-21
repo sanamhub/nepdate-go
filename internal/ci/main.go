@@ -298,15 +298,18 @@ func isolationCheck(deps string, coreBin, patroBin []byte) error {
 }
 
 var (
-	tagPattern = regexp.MustCompile(`^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`)
+	// A semver pre-release such as -beta.1 is allowed; build metadata is not, because the Go
+	// module proxy rejects it.
+	tagPattern = regexp.MustCompile(`^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)` +
+		`(-(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*)?$`)
 	dateSuffix = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}\s*$`)
 )
 
-// releaseCheck succeeds only if tag is vX.Y.Z and the changelog has a line
-// "## [X.Y.Z] - YYYY-MM-DD" (ADR-0005).
+// releaseCheck succeeds only if tag is vX.Y.Z or vX.Y.Z-PRERELEASE and the changelog has a line
+// "## [X.Y.Z(-PRERELEASE)] - YYYY-MM-DD" (ADR-0005).
 func releaseCheck(changelog, tag string) error {
 	if !tagPattern.MatchString(tag) {
-		return fmt.Errorf("%q is not a tag of the form vX.Y.Z", tag)
+		return fmt.Errorf("%q is not a tag of the form vX.Y.Z or vX.Y.Z-PRERELEASE", tag)
 	}
 	prefix := "## [" + tag[1:] + "] - "
 	for _, line := range strings.Split(changelog, "\n") {
