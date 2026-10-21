@@ -1,0 +1,45 @@
+name: verify-published
+
+# Fetches a released version the way a user does, through proxy.golang.org and sum.golang.org with
+# no replace directive, and runs one conversion and one patro lookup on every runner OS. release.yml
+# calls it after the GitHub Release exists; it can also be run by hand for any released version.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: released version, for example v0.1.0-beta.1
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: released version, for example v0.1.0-beta.1
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27"
+          cache: false
+      - name: Consumer from proxy.golang.org
+        # The proxy usually serves a new tag within minutes; 30 minutes covers a slow first fetch.
+        # The version goes through env, never into the script text.
+        env:
+          VERSION: ${{ inputs.version }}
+        run: go run ./tools/consumer-check -published "$VERSION" -wait 30m

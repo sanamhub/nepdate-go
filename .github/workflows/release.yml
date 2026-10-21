@@ -187,7 +187,7 @@ jobs:
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
   release:
-    # A dispatched run stops at preflight and CI; the release and proxy jobs only run for a tag.
+    # A dispatched run stops at preflight and CI; the release and verify jobs only run for a tag.
     # A dispatch started from a tag ref is still a dry run; only a tag push releases.
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     needs: [ci, lint, govulncheck, consumer, mutation, fuzz, api]
@@ -201,26 +201,46 @@ jobs:
         with:
           persist-credentials: false
       - name: Create GitHub Release
+        # Notes come from the CHANGELOG section, not the commit log. A tag with a pre-release part,
+        # such as v0.1.0-beta.1, becomes a GitHub pre-release, so it is never shown as the latest.
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           version="${GITHUB_REF_NAME#v}"
           awk -v ver="$version" '
             /^## \[/ { if (found) exit; if (index($0, "## [" ver "] -") == 1) { found = 1; next } }
             found
           ' CHANGELOG.md > notes.md
-          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md
+          if [ ! -s notes.md ]; then
+            echo "::error::CHANGELOG.md has no section for $version"
+            exit 1
+          fi
+          {
+            echo
+            echo "### Install"
+            echo
+            echo '```'
+            echo "go get github.com/sanamhub/nepdate-go@$GITHUB_REF_NAME"
+            echo '```'
+            echo
+            echo "### Verification"
+            echo
+            echo "- The module is served by proxy.golang.org and its hash is recorded in sum.golang.org, so"
+            echo "  \`go get\` checks it against the public checksum database."
+            echo "- After this release, a consumer module fetched the version from the proxy and converted"
+            echo "  a date and read a patro event on Linux, macOS and Windows (verify-published)."
+          } >> notes.md
+          prerelease=()
+          case "$version" in *-*) prerelease=(--prerelease) ;; esac
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md \
+            --verify-tag "${prerelease[@]}"
 
-  proxy:
-    # A dispatch started from a tag ref is still a dry run; only a tag push releases.
+  verify-published:
+    # Called, not triggered: a release created with GITHUB_TOKEN fires no release event. It fetches
+    # the tag through proxy.golang.org, which also makes the proxy index it.
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     needs: release
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version: "1.27"
-          cache: false
-      - name: Ask the proxy to index the version
-        run: GOPROXY=proxy.golang.org go list -m "github.com/sanamhub/nepdate-go@$GITHUB_REF_NAME"
+    uses: ./.github/workflows/verify-published.yml
+    with:
+      version: ${{ github.ref_name }}
