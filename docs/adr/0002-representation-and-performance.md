@@ -68,7 +68,7 @@ event-day serials with a start and a count each) takes about 15.7 KB and 22.6 ns
 the dense `dayInfo` record takes 11.2 KB and 4.7 ns in the same run. Dense is smaller because one
 `uint32` per day replaces three parallel arrays over 1671 event days, and every patro query becomes
 one subtraction, one bounds check and one array read. The generator fails when the data outgrows a
-bit field (G4-01).
+bit field.
 
 ### 3. Conversions: one table read plus one correction, in both directions
 
@@ -85,7 +85,7 @@ bit field (G4-01).
   estimate each fit Go's inlining budget of 80 (`-gcflags=-m=2` reports costs 22, 62 and 49).
 - The literal ALGORITHM §4 and §5 functions (binary search over year starts, Hinnant's
   `days_from_civil` and `civil_from_days`) live in `reference_test.go` as the oracle, and the
-  exhaustive test (G1-07) compares the fast path with them for all 109,212 days.
+  exhaustive test compares the fast path with them for all 109,212 days.
 
 ### 4. Static data, no start-up work
 
@@ -111,7 +111,7 @@ date in B7).
 
 ### 5. Zero allocation, asserted by tests
 
-These allocate nothing, checked with `testing.AllocsPerRun` (ADR-0004) and `-benchmem` (G5):
+These allocate nothing, checked with `testing.AllocsPerRun` (ADR-0004) and `-benchmem`:
 
 - `New`, `FromGregorian`, `FromTime`, every accessor, `Gregorian`, `Weekday`, `YearDay`,
   `Compare`, `Before`, `After`, `AddDays`, `AddMonths`, `AddYears`, `DaysUntil`, `Diff`, `Next`,
@@ -148,14 +148,14 @@ variable is allocated on the heap or the stack?" (https://go.dev/doc/faq#stack_o
 - No `[]rune` conversion and no `unicode/utf8` loops: Devanagari digits are the three bytes
   `0xE0 0xA5 0xA6+d`.
 - No `map`, no `sync.Mutex`, no lazy initialisation in the core. The only `sync.OnceValue` is the
-  `Asia/Kathmandu` location in `Today(nil)` (G4-05), outside every benchmark.
+  `Asia/Kathmandu` location in `Today(nil)`, outside every benchmark.
 
 ### 7. Targets
 
 | Level | Rule | Checked |
 |---|---|---|
-| Release blocker (BENCHMARK §6) | B1, B2, B7 within 1.5 times C# NepDate ns/op; 0 B/op | G5-02 |
-| Port target | every B1 to B8 faster than C# NepDate; 0 B/op for B1 to B4, B5 (`AppendLong`), B6, B7, B8 | G5-02; a miss is reported, not blocking |
+| Release blocker (BENCHMARK §6) | B1, B2, B7 within 1.5 times C# NepDate ns/op; 0 B/op | release benchmark run |
+| Port target | every B1 to B8 faster than C# NepDate; 0 B/op for B1 to B4, B5 (`AppendLong`), B6, B7, B8 | release benchmark run; a miss is reported, not blocking |
 
 ### 8. Measurements behind this decision
 
@@ -220,6 +220,6 @@ per date on logical CPUs 0 to 7 (performance cores) and 9.9 to 16.1 ns on CPUs 8
   machine.
 - The generator owns two derived facts (the estimate constants and the patro bit-field limits)
   and verifies both, so a data update can't break them silently.
-- `reference_test.go` keeps the spec's own algorithm in the repository, so reviewers compare the
-  spec with Go line by line, and the fast path is proved equal to it on every day of the range.
+- `reference_test.go` keeps the spec's own algorithm in the repository, so the spec and the Go code
+  can be compared line by line, and the fast path is proved equal to it on every day of the range.
 - `docs/API.md` gains `patro.Info.Event(i)` for the closure-free loop.
