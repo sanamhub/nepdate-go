@@ -14,7 +14,7 @@ import (
 // (shared/spec/vectors/csharp-tests/catalog.tsv). One subtest per row, "." and "#" replaced by
 // "_" (ADR-0004). Rows about C#'s internal arrays (CalendarOffsets, TithiData, EventData,
 // HolidayData) have no counterpart in this layout: the generator tests in internal/gen check
-// the same facts on the Go tables (G4-01).
+// the same facts on the Go tables.
 
 type csharpRow struct {
 	id   string
@@ -22,7 +22,7 @@ type csharpRow struct {
 	run  func(t *testing.T)
 }
 
-const internalLayout = "n/a: internal layout; internal/gen checks the generated tables instead (G4-01)"
+const internalLayout = "n/a: internal layout; internal/gen checks the generated tables instead"
 
 var csharpRows = []csharpRow{
 	{id: "CalendarDataTests.CalendarStrings_Pool_IsNonEmpty", run: func(t *testing.T) {

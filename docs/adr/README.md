@@ -1,8 +1,7 @@
 # Architecture Decision Records (Go port)
 
 Decisions for this repository only. Decisions that bind every port are in the hub
-(`sanamhub/nepdate`, `docs/adr/`). Immutable once Accepted and G0 is merged; supersede with a new
-ADR.
+(`sanamhub/nepdate`, `docs/adr/`). Immutable once Accepted; supersede with a new ADR.
 
 | ADR | Title | Status |
 |---|---|---|

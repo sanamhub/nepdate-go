@@ -47,7 +47,7 @@ func docsError(issues []docIssue) error {
 // used in this repository.
 var links = regexp.MustCompile(`\]\(([^)\s]+)\)`)
 
-// taskID matches a phase or task identifier, such as G6 or G6-01.
+// taskID matches an internal tracking identifier: G, a number, and an optional dash and number.
 var taskID = regexp.MustCompile(`\bG[0-9]+(?:-[0-9]+)?\b`)
 
 // docsCheck returns the problems in the documentation under root and the number of files checked.
@@ -172,13 +172,12 @@ func skipLink(target string) bool {
 }
 
 // isUserFacing reports whether a file ships to users of the module: the root pages and every page
-// under docs/ except the ADRs and plans, which are for maintainers and keep task IDs for
-// traceability. A new docs page is user-facing unless it goes under docs/adr or docs/plan.
+// under docs/ except the ADRs (ADR-0006). A new docs page is user-facing unless it goes under
+// docs/adr.
 func isUserFacing(file string) bool {
 	switch file {
 	case "README.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md":
 		return true
 	}
-	return strings.HasPrefix(file, "docs/") &&
-		!strings.HasPrefix(file, "docs/adr/") && !strings.HasPrefix(file, "docs/plan/")
+	return strings.HasPrefix(file, "docs/") && !strings.HasPrefix(file, "docs/adr/")
 }

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// Phase-2 rows of the C# catalogue (see TestCSharp in csharp_test.go).
+// C# catalogue rows for arithmetic, fiscal years and ranges (see TestCSharp in csharp_test.go).
 
 const (
 	d02       = "D-02: AddMonths takes whole months only"
@@ -16,7 +16,7 @@ const (
 	d09String = "D-09: Range has no String method; format Start and End instead"
 )
 
-var csharpRows2 = []csharpRow{
+var csharpArithRows = []csharpRow{
 	// Core/FiscalYearTests (D-08 shape: a FiscalYear value instead of static methods)
 	{id: "FiscalYearTests.GetFiscalYearStartAndEndDate_ValidYear_ReturnsCorrectDates", run: fyBounds(2080, nd(2080, 4, 1), lastOf(2081, 3))},
 	{id: "FiscalYearTests.GetFiscalYearStartAndEndDate_InvalidYear_ThrowsException#1", run: fyOutOfRange(1843)},

@@ -22,7 +22,7 @@ Decided in ADR-0005. Owner: maintainer. Approver: a second person.
 
 `release.yml` also has a `workflow_dispatch` input `version`. Running it with `version: vX.Y.Z`
 runs the preflight and full CI and skips the release and verify jobs, so a version can be checked
-before the human tags it. Trigger it from the Actions tab, or run the preflight locally with
+before the maintainer tags it. Trigger it from the Actions tab, or run the preflight locally with
 `go run ./internal/ci release-check vX.Y.Z`. The dispatch path needs the GitHub remote.
 
 ## Releasing

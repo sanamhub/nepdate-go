@@ -9,8 +9,8 @@
 
 ADR-0004 lists six CI gates. Publish readiness showed two kinds of defect that none of them catch.
 First, five exported struct fields had no doc comment, and revive passed because it checks only
-declarations and methods. Second, the user-facing pages had three broken relative links and a task
-ID that only means something inside this repository's plans.
+declarations and methods. Second, the user-facing pages had three broken relative links and an
+internal tracking ID that means nothing to a reader.
 
 ## Decision
 
@@ -22,7 +22,7 @@ ID that only means something inside this repository's plans.
 8. **Docs.** Every Markdown page under the repository root list (README, CHANGELOG, CONTRIBUTING,
    SECURITY) and under `docs/` has no em dash (U+2014), and every inline relative link resolves to
    a file inside the repository. User-facing pages, which are the root list plus every page under
-   `docs/` except `docs/adr/` and `docs/plan/`, also contain no task ID. A new page under `docs/`
+   `docs/` except `docs/adr/`, also contain no task ID. A new page under `docs/`
    is user-facing by default.
 
 The release workflow runs the same eight gates, and also the consumer check
@@ -32,6 +32,6 @@ The release workflow runs the same eight gates, and also the consumer check
 
 - Adding an exported identifier without a doc comment, or a docs page with a stale link, fails CI
   locally and on GitHub.
-- ADRs and plans keep their task IDs, so their history stays traceable.
+- ADRs are not checked for task IDs.
 - The docs gate checks inline links only, not link fragments or reference-style links. En dashes,
   as in `1901–2199`, are allowed.

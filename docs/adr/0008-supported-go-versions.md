@@ -8,8 +8,8 @@
 ## Context
 
 ADR-0001 sets `go 1.24` in `go.mod` and says CI runs the two supported releases, Go 1.26 and 1.27.
-Until G11 no workflow ran Go 1.24, so the `go` line was a claim nobody tested. G11 installed Go
-1.24.13, the latest 1.24 patch, and ran `go test ./...` and the consumer check with
+Until this decision no workflow ran Go 1.24, so the `go` line was a claim nobody tested. A local
+run with Go 1.24.13, the latest 1.24 patch, ran `go test ./...` and the consumer check with
 `GOTOOLCHAIN=local`. Both passed without a code change. The only failure was a cross-volume bug in
 `tools/consumer-check`, which was not a Go version difference.
 

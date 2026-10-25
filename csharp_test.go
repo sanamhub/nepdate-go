@@ -8,12 +8,9 @@ import (
 	"time"
 )
 
-// TestCSharp ports C# NepDate's own tests (shared/spec/vectors/csharp-tests/catalog.tsv, hub
-// H5). One subtest per catalogue row, named after the row id with "." and "#" replaced by "_"
+// TestCSharp ports C# NepDate's own tests (shared/spec/vectors/csharp-tests/catalog.tsv).
+// One subtest per catalogue row, named after the row id with "." and "#" replaced by "_"
 // (ADR-0004). A row that is not ported names its PARITY deviation or says n/a.
-//
-// A row marked "pending" waits for the task that adds its API; the marker comes out in that
-// task (hub PORT-PLAN, "C# test catalogue").
 
 type csharpRow struct {
 	id   string
@@ -21,7 +18,7 @@ type csharpRow struct {
 	run  func(t *testing.T)
 }
 
-// csharpPhases lists the catalogue phases this package covers so far.
+// csharpPhases lists the values of the catalogue's phase column that this package ports.
 var csharpPhases = []string{"1", "2", "3", "4", "D-14"}
 
 // patroRowPrefix marks the catalogue rows that package patro ports in its own TestCSharp.
@@ -290,7 +287,7 @@ var csharpRows = []csharpRow{
 	{id: "OptimizationVerificationTests.Equals_DifferentDates_ReturnsFalse", run: func(t *testing.T) {
 		check(t, MustNew(2080, 5, 15) != MustNew(2080, 5, 16), "not equal")
 	}},
-	// GetHashCode rows become "equal dates are equal map keys" (G1-07).
+	// GetHashCode rows become "equal dates are equal map keys".
 	{id: "OptimizationVerificationTests.GetHashCode_EqualDates_SameHashCode", run: func(t *testing.T) {
 		m := map[Date]int{MustNew(2080, 5, 15): 7}
 		check(t, m[MustNew(2080, 5, 15)] == 7, "equal dates are the same map key")
@@ -361,9 +358,9 @@ var csharpRows = []csharpRow{
 	}},
 }
 
-// allCSharpRows is every ported catalogue row, phase by phase.
+// allCSharpRows is every ported catalogue row of package nepdate.
 func allCSharpRows() []csharpRow {
-	return slices.Concat(csharpRows, csharpRows2, csharpRows3, csharpRows4)
+	return slices.Concat(csharpRows, csharpArithRows, csharpFormatParseRows, csharpRelativeRows)
 }
 
 func TestCSharp(t *testing.T) {

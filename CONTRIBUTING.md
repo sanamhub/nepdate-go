@@ -1,8 +1,11 @@
 # Contributing
 
-This is the Go port of the NepDate family. Behaviour is fixed by the shared spec in `shared/spec/`
-and decisions by the ADRs in `docs/adr/`, so most changes follow a task in `docs/plan/`. The rules
-for agents, which also apply to people, are in [`AGENTS.md`](AGENTS.md).
+Bug reports, fixes and documentation improvements are welcome. For a new feature or an API change,
+open an issue first so the design can be agreed before you write code. Behaviour is fixed by the
+shared spec in `shared/spec/` and decisions by the ADRs in `docs/adr/`.
+
+This project follows the [Code of Conduct](CODE_OF_CONDUCT.md). Report security problems as
+described in [SECURITY.md](SECURITY.md), not in a public issue.
 
 ## Data and spec changes go to the hub
 
@@ -38,14 +41,24 @@ coverage, copy them from `$(go env GOCACHE)/fuzz/github.com/sanamhub/nepdate-go/
 - Never weaken, skip or delete a test to get CI green. A skipped parity row names its deviation
   from `shared/spec/PARITY.md`.
 
-## Commits and PRs
+## Pull requests
 
-- [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`, with the
-  plan's task ID first when there is one (`feat(nepdate): <task ID> serial conversion`).
-- One task per PR. Fill in the PR template, including "What to look at first".
-- Prose, comments and commit messages follow
-  [`.claude/skills/writing-style/SKILL.md`](.claude/skills/writing-style/SKILL.md): no em dashes,
-  no filler, exact numbers and IDs, and no AI attribution lines.
+- Keep a pull request to one change. Fill in the PR template, including "What to look at first".
+- Add a line to the `Unreleased` section of [CHANGELOG.md](CHANGELOG.md) for anything a user would
+  notice.
+- A significant design decision gets an ADR in `docs/adr/`. Accepted ADRs are not edited; a later
+  ADR supersedes an earlier one.
+
+## Commit messages
+
+[Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`, imperative,
+lower case, no trailing period. Types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `build`,
+`ci`, `perf`. The body says why, not what.
+
+## Releases
+
+Releasing and rolling back are described in
+[`docs/runbooks/release.md`](docs/runbooks/release.md).
 
 By contributing you agree that your contribution is licensed under the MIT license
 ([LICENSE](LICENSE)).
