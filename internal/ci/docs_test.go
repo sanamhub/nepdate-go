@@ -32,8 +32,7 @@ func cleanDocs() map[string]string {
 		"CHANGELOG.md":             "# Changelog\n\n## [0.1.0] - 2026-10-17\n\n- First release.\n",
 		"docs/API.md":              "# API\n\n[README](../README.md). The range 1901–2199 is allowed here.\n",
 		"docs/runbooks/release.md": "# Release\n\nTag `vX.Y.Z` and push it.\n",
-		"docs/adr/0001.md":         "# ADR\n\nDecided in G6-01; the next phase keeps its task ID.\n",
-		"docs/plan/x.md":           "# Plan\n\nG6-02 is a task ID in a plan file.\n",
+		"docs/adr/0001.md":         "# ADR\n\nDecided in G6-01.\n",
 	}
 }
 
@@ -53,8 +52,8 @@ func TestDocsCheckClean(t *testing.T) {
 	if len(issues) != 0 {
 		t.Fatalf("%d issues in a clean tree:\n%s", len(issues), issueText(issues))
 	}
-	if n != 6 {
-		t.Errorf("checked %d files, want 6", n)
+	if n != 5 {
+		t.Errorf("checked %d files, want 5", n)
 	}
 }
 
@@ -108,13 +107,13 @@ func TestDocsCheckTaskID(t *testing.T) {
 	}
 }
 
-func TestDocsCheckTaskIDAllowedInPlanAndADR(t *testing.T) {
+func TestDocsCheckTaskIDAllowedInADR(t *testing.T) {
 	issues, _, err := docsCheck(writeDocs(t, cleanDocs()))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(issues) != 0 {
-		t.Fatalf("task IDs in plan and ADR files were reported:\n%s", issueText(issues))
+		t.Fatalf("task IDs in ADR files were reported:\n%s", issueText(issues))
 	}
 }
 
@@ -149,8 +148,7 @@ func TestIsUserFacing(t *testing.T) {
 		"docs/new-page.md":         true,
 		"docs/runbooks/release.md": true,
 		"docs/adr/0004-testing.md": false,
-		"docs/plan/G6-publish.md":  false,
-		"AGENTS.md":                false,
+		"NOTES.md":                 false,
 	}
 	for file, want := range cases {
 		if got := isUserFacing(file); got != want {

@@ -13,7 +13,7 @@ of [`docs/competitors.md`](competitors.md) and the C# NepDate baseline.
 | OS | Windows 11 Home 10.0.26300 |
 | Power plan | Ultimate Performance |
 | Affinity | logical CPU 2 (mask `0x4`), set with `start /affinity 4` |
-| Machine load | other agents were running; CPU load sampled every 5 s during the run ranged 1 to 71 % (median about 22 %), so the numbers are noisier than the quiet-machine protocol of BENCHMARK section 1 |
+| Machine load | other work was running; CPU load sampled every 5 s during the run ranged 1 to 71 % (median about 22 %), so the numbers are noisier than the quiet-machine protocol of BENCHMARK section 1 |
 
 ## Versions
 
@@ -72,8 +72,7 @@ covers B1 and B2.
   misses: 34.80 ns against C#'s 21.55 ns. A 2 s CPU profile of B6 (`-test.cpuprofile`) puts 68.8 %
   of the samples in `scanStrict` and 7.4 % in the inlined `devaAt`: the parser checks for
   Devanagari digits at every byte even though the B6 inputs are ASCII. The machine was loaded
-  during the run, so the miss is reported, not optimised away. Design options are in
-  [`docs/plan/B6-strict-parse-options.md`](plan/B6-strict-parse-options.md).
+  during the run, so the miss is reported, not optimised away.
 - Since this table was measured, strict parsing has a fast path for the exact `YYYY-MM-DD` shape
   (option A). An interleaved run of the old and new code on the same loaded machine took B6 from
   45.4 to 15.5 ns per date, 66 % faster (benchstat, p = 0.000, n = 10). The B6 row above is the
