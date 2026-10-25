@@ -135,7 +135,7 @@ func (t *lenientTokens) date(s string) (Date, error) {
 		nNums++
 	}
 	// An if chain, not a switch: Gremlins finds no coverage block for a case expression, so it
-	// cannot test one (G9-03).
+	// cannot test one.
 	if nMonths == 1 && nNums == 2 {
 		a, b := nums[0], nums[1]
 		if b.digits == 4 {
@@ -174,7 +174,7 @@ func foldEqual(token, entry string) bool {
 	for i := 0; i < len(token); {
 		c := token[i]
 		width := 1
-		// An if chain, not a switch, so Gremlins can test both conditions (G9-03).
+		// An if chain, not a switch, so Gremlins can test both conditions.
 		if c >= 'A' && c <= 'Z' {
 			c += 'a' - 'A'
 		} else if c == kelvinLead && i+2 < len(token) && token[i+1] == kelvinSecond &&
@@ -204,7 +204,7 @@ func digitAt(s string, i int) (value, width int) {
 // lenientSeparator returns the byte width of a separator at s[i], or 0: the strict
 // separators except '.', plus ','.
 func lenientSeparator(s string, i int) int {
-	// Separate ifs, not a switch, so Gremlins can test each condition (G9-03).
+	// Separate ifs, not a switch, so Gremlins can test each condition.
 	c := s[i]
 	if c == ',' {
 		return 1

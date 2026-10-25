@@ -56,7 +56,7 @@ func (d Date) AppendFormat(b []byte, pattern string, lang Lang) []byte {
 // appendToken writes a run of n letters c (y, M or d).
 func (d Date) appendToken(b []byte, c byte, n int, lang Lang) []byte {
 	// An if chain, not a switch: Gremlins finds no coverage block for a case expression, so it
-	// cannot test one (G9-03).
+	// cannot test one.
 	if c == 'y' && n >= 4 {
 		return appendDigits(b, int(d.year), 4, lang)
 	}

@@ -6,7 +6,7 @@ import (
 )
 
 // TestExhaustive compares the fast path with the ALGORITHM §4 and §5 reference for every day
-// of the range (G1-07).
+// of the range.
 func TestExhaustive(t *testing.T) {
 	for s := 0; s <= maxSerial; s++ {
 		ry, rm, rd := refFromSerial(s)

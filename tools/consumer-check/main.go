@@ -4,12 +4,12 @@
 // does: through the public import paths, outside the main module.
 //
 //	go run ./tools/consumer-check                 temporary module, removed on success
-//	go run ./tools/consumer-check -dir E:\temp\go-consumer
+//	go run ./tools/consumer-check -dir ../go-consumer
 //	go run ./tools/consumer-check -negative        break the import path and require failure
 //	go run ./tools/consumer-check -published v0.1.0-beta.1 -wait 30m
 //
 // The child runs with GOPROXY=off, so only the local replacement can satisfy the import. The
-// negative control proves the check runs the program instead of trusting a cached result.
+// -negative run proves the check runs the program instead of trusting a cached result.
 //
 // -published checks a released version instead: no replace directive, the module comes from
 // proxy.golang.org and its hash from sum.golang.org, the same path a user's go get takes. -wait
@@ -42,7 +42,7 @@ const (
 )
 
 // consumerSource is the program the throwaway module runs. The import path is substituted so the
-// negative control can break it.
+// -negative run can break it.
 const consumerSource = `package main
 
 import (
@@ -159,7 +159,7 @@ func checkPositive(dir string) error {
 // checkNegative requires the broken import to fail for the right reason: a build that succeeds
 // means the check is not exercising the import, and an unrelated failure would pass by accident.
 func checkNegative(dir, importPath string) error {
-	fmt.Println("consumer-check: negative control: import", importPath)
+	fmt.Println("consumer-check: broken import:", importPath)
 	out, err := runConsumer(dir)
 	fmt.Print(out)
 	if err == nil {
@@ -168,7 +168,7 @@ func checkNegative(dir, importPath string) error {
 	if !strings.Contains(out, importPath) {
 		return fmt.Errorf("the run failed without naming %q", importPath)
 	}
-	fmt.Println("consumer-check: negative control ok: the broken import failed as expected")
+	fmt.Println("consumer-check: broken import ok: the build failed as expected")
 	return nil
 }
 

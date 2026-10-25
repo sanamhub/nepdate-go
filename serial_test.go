@@ -15,7 +15,7 @@ func TestSerialEnds(t *testing.T) {
 	if got := fromSerial(maxSerial); got != Max {
 		t.Errorf("fromSerial(maxSerial) = %v, want Max", got)
 	}
-	// BS 2081-01-01 is serial 65746 (G1-01).
+	// BS 2081-01-01 is serial 65746.
 	if got := fromSerial(65746); got != MustNew(2081, Baishakh, 1) {
 		t.Errorf("fromSerial(65746) = %v, want 2081-01-01", got)
 	}

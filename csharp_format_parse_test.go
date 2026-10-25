@@ -7,7 +7,7 @@ import (
 	"unicode/utf8"
 )
 
-// Phase-3 rows of the C# catalogue (see TestCSharp in csharp_test.go). C#'s SmartDateParser and
+// C# catalogue rows for formatting, month names and parsing (see TestCSharp in csharp_test.go). C#'s SmartDateParser and
 // the string extensions that call it map to ParseLenient (PARITY D-06); NepaliDate.Parse and
 // TryParse map to Parse.
 
@@ -16,7 +16,7 @@ const (
 	naNull   = "n/a: a Go string is never nil"
 )
 
-var csharpRows3 = []csharpRow{
+var csharpFormatParseRows = []csharpRow{
 	// Abilities/NepaliDateFormattableTests, date 2081-04-15
 	{id: "NepaliDateFormattableTests.ToString_NullFormat_ReturnsDefault", run: formats(nd(2081, 4, 15), "", "2081/04/15")},
 	{id: "NepaliDateFormattableTests.ToString_G_SameAsDefault", run: formats(nd(2081, 4, 15), "G", nd(2081, 4, 15).String())},
@@ -46,7 +46,7 @@ var csharpRows3 = []csharpRow{
 	}},
 
 	// Abilities/NepaliDateParsableTests: IParsable is Parse, ISpanParsable is the same generic
-	// parser over []byte (UnmarshalText uses it from G4-04).
+	// parser over []byte, which UnmarshalText uses.
 	{id: "NepaliDateParsableTests.Parse_Via_GenericConstraint_Returns_CorrectDate", run: parsesTo("2081-04-15", nd(2081, 4, 15))},
 	{id: "NepaliDateParsableTests.TryParse_Via_GenericConstraint_ValidDate_Returns_True", run: parsesTo("2081/04/15", nd(2081, 4, 15))},
 	{id: "NepaliDateParsableTests.TryParse_Via_GenericConstraint_InvalidDate_Returns_False", run: parseFailsSyntax("garbage")},

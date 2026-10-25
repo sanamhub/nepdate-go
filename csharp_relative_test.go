@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Phase-4 rows of the C# catalogue that belong to package nepdate (see TestCSharp in
+// C# catalogue rows for today, yesterday, tomorrow and time conversion (see TestCSharp in
 // csharp_test.go). CalendarDataTests rows are in package patro.
 
 // relativeClock is the fixed "now" of the IsToday rows. D-14: C# reads the clock; here today is
@@ -51,7 +51,7 @@ var (
 	pickMinusTwo  = func(r relative) Date { d, _ := r.today.AddDays(-2); return d }
 )
 
-var csharpRows4 = []csharpRow{
+var csharpRelativeRows = []csharpRow{
 	// Extensions/DateTimeExtensionsTests: DateTime.ToNepaliDate is FromTime.
 	{id: "DateTimeExtensionsTests.ToNepaliDate_ValidDateTime_ReturnsCorrectNepaliDate", run: fromTimeIs(time.Date(2023, time.August, 30, 0, 0, 0, 0, time.UTC), nd(2080, 5, 13))},
 	{id: "DateTimeExtensionsTests.ToNepaliDate_MinValue_ThrowsArgumentOutOfRangeException", run: fromTimeFails(time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC))},

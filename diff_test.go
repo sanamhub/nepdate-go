@@ -17,7 +17,6 @@ func TestDiff(t *testing.T) {
 		{MustNew(2081, 4, 32), MustNew(2081, 6, 1), Diff{false, 0, 1, 1, 32}},
 		{MustNew(2081, 1, 31), MustNew(2081, 2, 30), Diff{false, 0, 0, 30, 30}},
 		{MustNew(2081, 3, 15), MustNew(2081, 3, 15), Diff{false, 0, 0, 0, 0}},
-		// G2-03 table
 		{MustNew(2081, 4, 32), MustNew(2081, 6, 30), Diff{false, 0, 2, 0, 61}},
 		{MustNew(2081, 1, 1), MustNew(2082, 1, 1), Diff{false, 1, 0, 0, 366}},
 		{MustNew(2081, 4, 15), MustNew(2083, 2, 10), Diff{false, 1, 9, 26, 663}},

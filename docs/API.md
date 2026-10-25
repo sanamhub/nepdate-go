@@ -1,7 +1,7 @@
 # `nepdate` (Go): exported API contract (v0.1)
 
 The complete exported surface for v0.1. Implement exactly this; adding an exported identifier
-needs this file changed in the same PR, approved by the human. Behaviour: `shared/spec/`
+needs this file changed in the same PR, approved by the maintainer. Behaviour: `shared/spec/`
 (`ALGORITHM.md`, `FORMATTING.md`, `PARSING.md`, `PATRO.md`, `PARITY.md`). Conventions: ADR-0003.
 
 ```go

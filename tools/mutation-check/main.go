@@ -62,7 +62,7 @@ func targetFor(key string) (mutationTarget, error) {
 	return target, nil
 }
 
-// defaultThreshold is just below the final G8 score (100.00). The survivor ceiling is not a
+// defaultThreshold is just below the measured mutation score (100.00). The survivor ceiling is not a
 // separate number: it is the sum of the counts in the baseline file.
 const defaultThreshold = 99.5
 

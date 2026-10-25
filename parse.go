@@ -70,7 +70,7 @@ func scanStrictLoop[T text](s T) (Date, ParseErrorKind, error) {
 		c := s[i]
 		third := devaAt(s, i)
 		var d int
-		//nolint:gocritic // an if chain, not a switch, so Gremlins can test each condition (G9-03)
+		//nolint:gocritic // an if chain, not a switch, so Gremlins can test each condition
 		if c >= '0' && c <= '9' {
 			d = int(c - '0')
 			i++
