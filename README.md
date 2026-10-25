@@ -115,6 +115,7 @@ A Date marshals to JSON as `"YYYY-MM-DD"`. Saving an unset (zero) Date returns a
 
 | Topic | Where |
 |---|---|
+| Guides and examples | [nepdate.com/docs/go](https://nepdate.com/docs/go/) |
 | Every exported identifier | [docs/API.md](https://github.com/sanamhub/nepdate-go/blob/main/docs/API.md) |
 | Speed and allocations, with the C# baseline | [docs/benchmarks.md](https://github.com/sanamhub/nepdate-go/blob/main/docs/benchmarks.md) |
 | What changed in each version | [CHANGELOG.md](https://github.com/sanamhub/nepdate-go/blob/main/CHANGELOG.md) |
