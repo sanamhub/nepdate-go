@@ -38,7 +38,14 @@ verification notes. Then it calls `verify-published.yml`, which fetches the vers
 proxy.golang.org and sum.golang.org with no replace directive (`go run ./tools/consumer-check
 -published vX.Y.Z`) and converts a date and reads a patro event on Linux, macOS and Windows. It
 waits up to 30 minutes for the proxy. `verify-published.yml` can also be run by hand from the
-Actions tab for any released version.
+Actions tab for any released version, or with `latest`.
+
+`verify-published.yml` also runs on a schedule, always for `latest`. Every Monday at 05:23 UTC it
+installs that version on Linux and runs the same conversion and patro check. Every day at 03:17 UTC
+it checks the proxy metadata only: the version must still be listed, and its `.info` and `.zip`
+files must answer a HEAD request, so no module is downloaded. A failed scheduled run opens or
+updates one issue labelled `published-check`, titled `Published nepdate-go <version> does not
+install or run`. Create that label once. A green run is silent.
 
 ## Pre-releases
 
