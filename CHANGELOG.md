@@ -6,6 +6,11 @@ All notable changes to this module are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The published-package check now also runs weekly and daily, and reports a failure through the
+  `published-check` issue.
+
 ## [0.1.0-beta.1] - 2026-10-21
 
 First public pre-release. The API may still change before 0.1.0.

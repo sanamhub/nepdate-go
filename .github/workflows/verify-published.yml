@@ -2,27 +2,74 @@ name: verify-published
 
 # Fetches a released version the way a user does, through proxy.golang.org and sum.golang.org with
 # no replace directive, and runs one conversion and one patro lookup on every runner OS. release.yml
-# calls it after the GitHub Release exists; it can also be run by hand for any released version.
+# calls it after the GitHub Release exists; it can also be run by hand for any released version, or
+# with latest.
+#
+# Scheduled runs keep the published module honest after the release page goes quiet. Every Monday
+# one Linux runner installs the newest version from the proxy and checks it, and every day a
+# metadata-only check confirms the proxy still lists the version and serves the .info and .zip
+# files without downloading them. The weekly runs of the ports are an hour apart, so one registry
+# outage is one bad hour, not eight failures at once. A failure opens or updates one issue labelled
+# published-check. The check jobs read the proxy and nothing else; only the report job writes.
 
 on:
   workflow_call:
     inputs:
       version:
-        description: released version, for example v0.1.0-beta.1
-        required: true
+        description: released version, for example v0.1.0-beta.1, or latest for the newest one on proxy.golang.org
+        required: false
+        default: latest
         type: string
   workflow_dispatch:
     inputs:
       version:
-        description: released version, for example v0.1.0-beta.1
-        required: true
+        description: released version, for example v0.1.0-beta.1, or latest for the newest one on proxy.golang.org
+        required: false
+        default: latest
         type: string
+  schedule:
+    # The weekly install check, Monday 05:23 UTC.
+    - cron: "23 5 * * 1"
+    # The daily metadata check, which fetches no module file.
+    - cron: "17 3 * * *"
 
 permissions:
   contents: read
 
 jobs:
+  # One place resolves latest, so every job of a run checks the same version.
+  resolve:
+    name: resolve the version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27"
+          cache: false
+      - name: Resolve
+        id: resolve
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          version="${INPUT_VERSION:-latest}"
+          if [ "$version" = latest ]; then
+            version="$(go run ./tools/consumer-check -published latest -resolve)"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: \`$version\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # A release or a manual run: the same check on every runner OS.
   verify:
+    name: verify ${{ needs.resolve.outputs.version }}
+    if: github.event_name != 'schedule'
+    needs: resolve
     strategy:
       fail-fast: false
       matrix:
@@ -38,8 +85,154 @@ jobs:
           go-version: "1.27"
           cache: false
       - name: Consumer from proxy.golang.org
-        # The proxy usually serves a new tag within minutes; 30 minutes covers a slow first fetch.
-        # The version goes through env, never into the script text.
+        id: check
+        shell: bash
         env:
-          VERSION: ${{ inputs.version }}
-        run: go run ./tools/consumer-check -published "$VERSION" -wait 30m
+          VERSION: ${{ needs.resolve.outputs.version }}
+        run: |
+          set -o pipefail
+          go run ./tools/consumer-check -published "$VERSION" -wait 30m 2>&1 | tee verify.log
+      - name: Step summary
+        if: always()
+        shell: bash
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+          OUTCOME: ${{ steps.check.outcome }}
+        run: |
+          {
+            echo "### verify-published"
+            echo
+            echo "- Version: \`$VERSION\`"
+            echo "- Result: **$OUTCOME**"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep the failing output
+        if: failure()
+        shell: bash
+        run: tail -n 40 verify.log > failure.txt || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: failure-verify-${{ matrix.os }}
+          path: failure.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # The weekly check: Linux only, one install, and the newest version from the registry.
+  weekly:
+    name: weekly ${{ needs.resolve.outputs.version }}
+    if: github.event_name == 'schedule' && github.event.schedule == '23 5 * * 1'
+    needs: resolve
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        manager: [go]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27"
+          cache: false
+      - name: Install and run with ${{ matrix.manager }}
+        id: check
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+        run: |
+          set -o pipefail
+          go run ./tools/consumer-check -published "$VERSION" -wait 5m 2>&1 | tee verify.log
+      - name: Step summary
+        if: always()
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+          OUTCOME: ${{ steps.check.outcome }}
+        run: |
+          {
+            echo "### verify-published (weekly)"
+            echo
+            echo "- Version: \`$VERSION\`"
+            echo "- Result: **$OUTCOME**"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep the failing output
+        if: failure()
+        run: tail -n 40 verify.log > failure.txt || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: failure-weekly-${{ matrix.manager }}
+          path: failure.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # The daily check: the proxy still lists the version and answers for its .info and .zip files,
+  # with no download, so it cannot look like user traffic to proxy.golang.org.
+  metadata:
+    name: metadata ${{ needs.resolve.outputs.version }}
+    if: github.event_name == 'schedule' && github.event.schedule == '17 3 * * *'
+    needs: resolve
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27"
+          cache: false
+      - name: Check the proxy listing
+        id: check
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+        run: |
+          set -o pipefail
+          go run ./tools/consumer-check -published "$VERSION" -metadata 2>&1 | tee metadata.log
+      - name: Step summary
+        if: always()
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+          OUTCOME: ${{ steps.check.outcome }}
+        run: |
+          {
+            echo "### verify-published (metadata)"
+            echo
+            echo "- Version: \`$VERSION\`"
+            echo "- Result: **$OUTCOME**"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep the failing output
+        if: failure()
+        run: tail -n 40 metadata.log > failure.txt || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: failure-metadata
+          path: failure.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # The only job with write access. It reads the artifacts the check jobs kept and opens or updates
+  # one issue; it never touches the registry.
+  report:
+    name: report
+    if: failure() && github.event_name == 'schedule'
+    needs: [resolve, verify, weekly, metadata]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: failure-*
+          path: failures
+      - name: Open or update the issue
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/published-issue.sh nepdate-go "${VERSION:-latest}" failures

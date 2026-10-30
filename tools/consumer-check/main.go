@@ -7,6 +7,9 @@
 //	go run ./tools/consumer-check -dir ../go-consumer
 //	go run ./tools/consumer-check -negative        break the import path and require failure
 //	go run ./tools/consumer-check -published v0.1.0-beta.1 -wait 30m
+//	go run ./tools/consumer-check -published latest -wait 30m
+//	go run ./tools/consumer-check -published latest -resolve
+//	go run ./tools/consumer-check -published latest -metadata
 //
 // The child runs with GOPROXY=off, so only the local replacement can satisfy the import. The
 // -negative run proves the check runs the program instead of trusting a cached result.
@@ -14,13 +17,22 @@
 // -published checks a released version instead: no replace directive, the module comes from
 // proxy.golang.org and its hash from sum.golang.org, the same path a user's go get takes. -wait
 // retries until the proxy serves the version, because a fresh tag can take minutes to appear.
+//
+// latest is the version a plain go get picks: the proxy's @latest, which prefers a stable release
+// and falls back to the highest pre-release while none exists. The resolved version is printed
+// before anything is installed. -resolve prints it alone and exits, so a workflow can pass it to
+// the later jobs. -metadata reads the proxy's version list and sends HEAD requests to the .info
+// and .zip files; it downloads no module, so it adds nothing to the proxy's traffic.
 package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -32,6 +44,11 @@ const (
 	modulePath  = "github.com/sanamhub/nepdate-go"
 	brokenPath  = modulePath + "-missing"
 	consumerDir = "nepdate-consumer-"
+
+	// proxyBase is where a plain go get looks for a published version. Tests point the resolver
+	// and the metadata check at a local server instead.
+	proxyBase = "https://proxy.golang.org"
+	userAgent = "nepdate-verify-published"
 )
 
 // The date and its first event are fixed data of the coverage range, so the expected text is part
@@ -74,20 +91,161 @@ func main() {
 func main() {
 	dir := flag.String("dir", "", "write the consumer module here instead of a temporary directory")
 	negative := flag.Bool("negative", false, "break the import path and require the build to fail")
-	published := flag.String("published", "", "check this released version from proxy.golang.org instead of the checkout")
+	published := flag.String("published", "", "check this released version from proxy.golang.org instead of the checkout; latest takes the proxy's newest version")
 	wait := flag.Duration("wait", 0, "with -published, keep retrying for this long while the proxy lacks the version")
+	resolve := flag.Bool("resolve", false, "with -published, print the resolved version and exit")
+	metadata := flag.Bool("metadata", false, "with -published, check the proxy listing and the .info and .zip files without downloading the module")
 	flag.Parse()
 
 	var err error
-	if *published != "" {
-		err = runPublished(*published, *wait)
-	} else {
+	switch {
+	case *resolve || *metadata:
+		err = runProxyMode(*published, *resolve, *metadata)
+	case *published != "":
+		err = runInstall(*published, *wait)
+	default:
 		err = run(*dir, *negative)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "consumer-check:", err)
 		os.Exit(1)
 	}
+}
+
+// runInstall resolves the version, prints the resolution for latest, and runs the full published
+// check on it.
+func runInstall(want string, wait time.Duration) error {
+	version, err := resolveVersion(proxyBase, want)
+	if err != nil {
+		return err
+	}
+	if want == "latest" {
+		fmt.Println("consumer-check: proxy.golang.org latest is", version)
+	}
+	return runPublished(version, wait)
+}
+
+// runProxyMode serves the two modes a scheduled workflow needs. Resolve prints one line and stops;
+// metadata checks the listing and the file headers without installing anything.
+func runProxyMode(want string, resolve, metadata bool) error {
+	if want == "" {
+		return errors.New("-resolve and -metadata need -published")
+	}
+	if resolve && metadata {
+		return errors.New("-resolve and -metadata are mutually exclusive")
+	}
+	version, err := resolveVersion(proxyBase, want)
+	if err != nil {
+		return err
+	}
+	if resolve {
+		fmt.Println(version)
+		return nil
+	}
+	if want == "latest" {
+		fmt.Println("consumer-check: proxy.golang.org latest is", version)
+	}
+	return checkMetadata(proxyBase, version)
+}
+
+// resolveVersion returns the version to check. latest asks the proxy, the way go get does; any
+// other value is a version and must carry the v prefix the module system uses.
+func resolveVersion(base, want string) (string, error) {
+	if want == "latest" {
+		return latestVersion(base)
+	}
+	if !strings.HasPrefix(want, "v") {
+		return "", fmt.Errorf("version %q must start with v", want)
+	}
+	return want, nil
+}
+
+// latestVersion reads the proxy's @latest document. The proxy prefers a stable release and falls
+// back to the highest pre-release while the module has no stable release.
+func latestVersion(base string) (string, error) {
+	url := base + "/" + modulePath + "/@latest"
+	body, err := proxyGet(url)
+	if err != nil {
+		return "", fmt.Errorf("resolve latest: %w", err)
+	}
+	var info struct {
+		Version string
+	}
+	if err := json.Unmarshal(body, &info); err != nil {
+		return "", fmt.Errorf("resolve latest: %s is not JSON: %w", url, err)
+	}
+	if info.Version == "" {
+		return "", fmt.Errorf("resolve latest: %s names no version", url)
+	}
+	return info.Version, nil
+}
+
+// checkMetadata is the daily check: the proxy still lists the version and serves the .info and
+// .zip files. HEAD requests read the headers only, so no module is downloaded. The Go proxy has no
+// yanked state, so a version that drops out of the list, or a file that stops answering, is the
+// failure a user would meet.
+func checkMetadata(base, version string) error {
+	listURL := base + "/" + modulePath + "/@v/list"
+	body, err := proxyGet(listURL)
+	if err != nil {
+		return fmt.Errorf("the proxy does not list %s: %w", version, err)
+	}
+	listed := false
+	for _, line := range strings.Split(strings.TrimSpace(string(body)), "\n") {
+		if strings.TrimSpace(line) == version {
+			listed = true
+			break
+		}
+	}
+	if !listed {
+		return fmt.Errorf("the proxy does not list %s", version)
+	}
+	for _, suffix := range []string{".info", ".zip"} {
+		url := base + "/" + modulePath + "/@v/" + version + suffix
+		code, err := proxyHead(url)
+		if err != nil {
+			return fmt.Errorf("%s: %w", url, err)
+		}
+		if code != http.StatusOK {
+			return fmt.Errorf("%s answered %d", url, code)
+		}
+	}
+	fmt.Printf("consumer-check: %s %s is listed and its .info and .zip answer 200\n", modulePath, version)
+	return nil
+}
+
+// proxyGet reads a small metadata document from the proxy.
+func proxyGet(url string) ([]byte, error) {
+	req, err := http.NewRequest(http.MethodGet, url, nil) //nolint:gosec // the public proxy or a test server
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", userAgent)
+	resp, err := http.DefaultClient.Do(req) //nolint:gosec // the request is built here from the proxy base
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("answered %d", resp.StatusCode)
+	}
+	return io.ReadAll(io.LimitReader(resp.Body, 4<<20))
+}
+
+// proxyHead sends a HEAD request and returns the status code, so a package file can be confirmed
+// without downloading it.
+func proxyHead(url string) (int, error) {
+	req, err := http.NewRequest(http.MethodHead, url, nil) //nolint:gosec // the public proxy or a test server
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("User-Agent", userAgent)
+	resp, err := http.DefaultClient.Do(req) //nolint:gosec // the request is built here from the proxy base
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	return resp.StatusCode, nil
 }
 
 func run(dir string, negative bool) error {
@@ -206,7 +364,7 @@ func goCommand(dir string, args ...string) *exec.Cmd {
 // nothing private, no workspace. Only proxy.golang.org is allowed, so a direct fetch from GitHub
 // cannot hide a version the proxy does not serve.
 var publishedEnv = []string{
-	"GOWORK=off", "GOPROXY=https://proxy.golang.org", "GOSUMDB=sum.golang.org",
+	"GOWORK=off", "GOPROXY=" + proxyBase, "GOSUMDB=sum.golang.org",
 	"GONOSUMDB=", "GOPRIVATE=", "GOFLAGS=-mod=mod", "GOTOOLCHAIN=local",
 }
 
