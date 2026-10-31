@@ -2,6 +2,7 @@ package patro
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"slices"
 	"strings"
@@ -35,32 +36,36 @@ var csharpRows = []csharpRow{
 	{id: "CalendarDataTests.TithiData_DayOffsets_IsStrictlySorted", skip: internalLayout},
 	{id: "CalendarDataTests.TithiData_AllPoolIds_AreInRange", skip: internalLayout},
 	{id: "CalendarDataTests.TithiData_EntryCount_Matches2190", run: func(t *testing.T) {
+		sum := loadSummary(t)
 		n := 0
 		for d := range Coverage().Days() {
 			if _, ok := Of(d).Tithi(); ok {
 				n++
 			}
 		}
-		check(t, n == 2190, "2190 days have a tithi")
+		check(t, n == sum.TithiDays, fmt.Sprintf("%d days have a tithi, want %d", n, sum.TithiDays))
 	}},
 	{id: "CalendarDataTests.EventData_DayOffsets_IsStrictlySorted", skip: internalLayout},
 	{id: "CalendarDataTests.EventData_SliceStart_IsNonDecreasing", skip: internalLayout},
 	{id: "CalendarDataTests.EventData_SliceStart_SentinelEqualsEntriesLength", skip: internalLayout},
 	{id: "CalendarDataTests.EventData_AllEntries_AreInRange", skip: internalLayout},
 	{id: "CalendarDataTests.EventData_DayCount_Matches1671", run: func(t *testing.T) {
+		sum := loadSummary(t)
 		n := 0
 		for d := range Coverage().Days() {
 			if Of(d).EventCount() > 0 {
 				n++
 			}
 		}
-		check(t, n == 1671, "1671 days have events")
+		check(t, n == sum.EventDays, fmt.Sprintf("%d days have events, want %d", n, sum.EventDays))
 	}},
 	{id: "CalendarDataTests.HolidayData_DayOffsets_IsStrictlySorted", run: func(t *testing.T) {
 		check(t, slices.IsSortedFunc(slices.Collect(PublicHolidays()), nepdate.Date.Compare), "holidays ascend")
 	}},
 	{id: "CalendarDataTests.HolidayData_Count_Matches294", run: func(t *testing.T) {
-		check(t, len(slices.Collect(PublicHolidays())) == 294, "294 holidays")
+		sum := loadSummary(t)
+		n := len(slices.Collect(PublicHolidays()))
+		check(t, n == sum.Holidays, fmt.Sprintf("%d holidays, want %d", n, sum.Holidays))
 	}},
 	{id: "CalendarDataTests.CalendarOffsets_GetOffset_BaseYear_Month1_Day1_ReturnsZero", skip: internalLayout},
 	{id: "CalendarDataTests.CalendarOffsets_GetOffset_OutOfRange_ReturnsNegativeOne", skip: internalLayout},
@@ -130,6 +135,7 @@ var csharpRows = []csharpRow{
 	{id: "CalendarDataTests.AllHolidayOffsets_AreInBounds", skip: internalLayout},
 	{id: "CalendarDataTests.AllEventOffsets_AreInBounds", skip: internalLayout},
 	{id: "CalendarDataTests.HolidayCount_ViaApi_Matches294", run: func(t *testing.T) {
+		sum := loadSummary(t)
 		r, _ := nepdate.NewRange(nepdate.MustNew(2001, 1, 1), nepdate.MustNew(2089, 12, 1).LastOfMonth())
 		n := 0
 		for d := range r.Days() {
@@ -137,7 +143,7 @@ var csharpRows = []csharpRow{
 				n++
 			}
 		}
-		check(t, n == 294, "294 holidays in 2001..2089")
+		check(t, n == sum.Holidays, fmt.Sprintf("%d holidays in 2001..2089, want %d", n, sum.Holidays))
 	}},
 	// C# returns empty arrays, never null; ranging over Events of a day without events yields
 	// nothing.

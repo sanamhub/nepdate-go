@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -54,6 +55,12 @@ jobs:
       - name: Quality gates
         if: matrix.go != '1.24.13'
         run: go run ./internal/ci
+
+  # Fails when shared/ differs from the hub at the commit in shared/VERSION (ADR-0001 §4).
+  shared-check:
+    permissions:
+      contents: read
+    uses: sanamhub/nepdate/.github/workflows/shared-check.yml@f94d67c0c85de7909cf54d7e4e96f226ca750129 # main 2026-10-31
 
   consumer:
     # A module outside the checkout imports both packages through a replace, as a user would.
