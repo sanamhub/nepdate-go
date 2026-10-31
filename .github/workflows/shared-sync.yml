@@ -1,7 +1,8 @@
 # Weekly: replaces shared/ with the hub's main, regenerates the tables and opens one PR on
 # bot/shared-sync (hub ADR-0001 decision 3, docs/runbooks/data-update.md).
 #
-# The runner image has no Go on PATH, so regenerate installs the pinned toolchain it needs.
+# The runner image has no Go on PATH, so regenerate installs the pinned toolchain it needs and
+# checks it against the SHA-256 that go.dev/dl publishes for it.
 name: shared-sync
 
 on:
@@ -21,7 +22,9 @@ jobs:
     uses: sanamhub/nepdate/.github/workflows/shared-sync.yml@f94d67c0c85de7909cf54d7e4e96f226ca750129 # main 2026-10-31
     with:
       regenerate: >-
-        curl -fsSL https://go.dev/dl/go1.26.10.linux-amd64.tar.gz | tar -xz -C "$RUNNER_TEMP" &&
+        curl -fsSL -o "$RUNNER_TEMP/go.tar.gz" https://go.dev/dl/go1.26.10.linux-amd64.tar.gz &&
+        echo "ccfe7ae822d2c2f41f4fe7c956199967a4dac22d0ee0d2b2bfdb440aab3b20c5  $RUNNER_TEMP/go.tar.gz" | sha256sum -c - &&
+        tar -xzf "$RUNNER_TEMP/go.tar.gz" -C "$RUNNER_TEMP" &&
         export PATH="$RUNNER_TEMP/go/bin:$PATH" &&
         go generate ./...
     secrets:
