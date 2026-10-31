@@ -1,0 +1,28 @@
+# Weekly: replaces shared/ with the hub's main, regenerates the tables and opens one PR on
+# bot/shared-sync (hub ADR-0001 decision 3, docs/runbooks/data-update.md).
+#
+# The runner image has no Go on PATH, so regenerate installs the pinned toolchain it needs.
+name: shared-sync
+
+on:
+  schedule:
+    - cron: "35 3 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    uses: sanamhub/nepdate/.github/workflows/shared-sync.yml@f94d67c0c85de7909cf54d7e4e96f226ca750129 # main 2026-10-31
+    with:
+      regenerate: >-
+        curl -fsSL https://go.dev/dl/go1.26.10.linux-amd64.tar.gz | tar -xz -C "$RUNNER_TEMP" &&
+        export PATH="$RUNNER_TEMP/go/bin:$PATH" &&
+        go generate ./...
+    secrets:
+      SYNC_APP_PRIVATE_KEY: ${{ secrets.SYNC_APP_PRIVATE_KEY }}
