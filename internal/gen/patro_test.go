@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -18,50 +19,62 @@ func loadTestPatro(t *testing.T) (*calendar, map[int]*patroFile) {
 	return cal, files
 }
 
-// TestPatroCounts checks the PATRO §3 counts from the generated tables.
+// TestPatroCounts checks the tables against shared/spec/vectors/patro-summary.json.
 func TestPatroCounts(t *testing.T) {
 	cal, files := loadTestPatro(t)
 	p, err := buildPatro(cal, files)
 	if err != nil {
 		t.Fatal(err)
 	}
-	tithi, holidays, eventDays, events := 0, 0, 0, 0
-	for _, rec := range p.dayInfo {
-		if rec&tithiMask != 0 {
-			tithi++
-		}
-		if rec&holidayBit != 0 {
-			holidays++
-		}
-		if n := (rec >> countShift) & countMask; n > 0 {
-			eventDays++
-			events += int(n)
-		}
+	sum, err := loadPatroSummary("../..")
+	if err != nil {
+		t.Fatal(err)
 	}
-	checks := []struct {
-		name      string
-		got, want int
-	}{
-		{"T (tithi days)", tithi, 2190},
-		{"H (holidays)", holidays, 294},
-		{"E (event days)", eventDays, 1671},
-		{"events", events, 3032},
-		{"eventName entries", len(p.eventName), 3032},
-		{"name pairs", len(p.pairs), 753},
-		{"nameOff entries", len(p.nameOff), 1507},
-		{"dayInfo entries", len(p.dayInfo), 2793},
-		{"covFirst", int(p.covFirst), 64285},
-		{"covLast", int(p.covLast), 67077},
-		{"nameText bytes", len(p.nameText), 59800},
-	}
-	for _, c := range checks {
-		if c.got != c.want {
-			t.Errorf("%s = %d, want %d", c.name, c.got, c.want)
-		}
+	if err := checkPatroSummary(cal, p, sum); err != nil {
+		t.Fatal(err)
 	}
 	// Tithi names come first, so every tithi id is below the number of tithi names.
 	if p.tithiNames >= 63 {
 		t.Errorf("%d tithi names", p.tithiNames)
+	}
+}
+
+// TestPatroSummaryMismatch checks that a summary count that disagrees with the data fails, naming
+// the field and both values.
+func TestPatroSummaryMismatch(t *testing.T) {
+	cal, files := loadTestPatro(t)
+	p, err := buildPatro(cal, files)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum, err := loadPatroSummary("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cases := []struct {
+		field string
+		edit  func(*patroSummary)
+	}{
+		{"names", func(s *patroSummary) { s.Names++ }},
+		{"days", func(s *patroSummary) { s.Days-- }},
+		{"holidays", func(s *patroSummary) { s.Holidays++ }},
+		{"name_bytes", func(s *patroSummary) { s.NameBytes-- }},
+		{"tithi_first_day", func(s *patroSummary) { s.TithiFirstDay = "2000-01-01" }},
+	}
+	for _, c := range cases {
+		bad := *sum
+		c.edit(&bad)
+		err := checkPatroSummary(cal, p, &bad)
+		if err == nil || !strings.Contains(err.Error(), c.field) || !strings.Contains(err.Error(), "summary says") || !strings.Contains(err.Error(), "the data has") {
+			t.Errorf("summary with a wrong %s gave %v", c.field, err)
+		}
+	}
+}
+
+// TestPatroSummaryMissing checks that a shared/ without the summary is told to resync.
+func TestPatroSummaryMissing(t *testing.T) {
+	if _, err := loadPatroSummary(t.TempDir()); err == nil || !strings.Contains(err.Error(), "resync") {
+		t.Fatalf("a missing summary gave %v", err)
 	}
 }
 
@@ -109,15 +122,27 @@ func TestPatroSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	sum, err := loadPatroSummary("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
 	var src string
 	for _, f := range files {
 		if f.path == "patro/patro_gen.go" {
 			src = string(f.data)
 		}
 	}
-	for _, want := range []string{"package patro", "dayInfo = [2793]uint32{", "eventName = [3032]uint16{", "nameOff = [1507]uint32{", "// 2081-01-01\n", "covFirst = 64285"} {
-		if !strings.Contains(src, want) {
-			t.Errorf("patro_gen.go lacks %q", want)
+	want := []string{
+		"package patro",
+		fmt.Sprintf("dayInfo = [%d]uint32{", sum.Days),
+		fmt.Sprintf("eventName = [%d]uint16{", sum.Events),
+		fmt.Sprintf("nameOff = [%d]uint32{", 2*sum.Names+1),
+		"// 2081-01-01\n",
+		fmt.Sprintf("covFirst = %d", sum.FirstSerial),
+	}
+	for _, w := range want {
+		if !strings.Contains(src, w) {
+			t.Errorf("patro_gen.go lacks %q", w)
 		}
 	}
 	if strings.Contains(src, "func init") {

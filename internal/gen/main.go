@@ -1,4 +1,5 @@
-// Command gen writes the generated tables of package nepdate from shared/data/.
+// Command gen writes the generated tables of package nepdate from shared/data/ and the counts in
+// shared/spec/vectors/patro-summary.json.
 //
 // Run it from the repository root, usually through go generate ./... . With -check it
 // generates in memory, compares the bytes with the files on disk, prints the name of each file
@@ -97,8 +98,15 @@ func generate(root string) ([]output, error) {
 	if err != nil {
 		return nil, err
 	}
+	sum, err := loadPatroSummary(root)
+	if err != nil {
+		return nil, err
+	}
 	p, err := buildPatro(cal, files)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkPatroSummary(cal, p, sum); err != nil {
 		return nil, err
 	}
 	patroSrc, err := renderPatro(cal, p)

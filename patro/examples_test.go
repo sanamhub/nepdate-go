@@ -10,24 +10,23 @@ import (
 
 func ExampleCoverage() {
 	r := patro.Coverage()
-	fmt.Println(r.Start(), r.End(), r.Len())
-	// Output: 2077/01/01 2084/08/20 2793
+	fmt.Println(r.Start(), r.End())
+	// Output: 2077/01/01 2084/08/20
 }
 
 func ExamplePublicHolidays() {
 	n := 0
 	for d := range patro.PublicHolidays() {
-		if n < 3 {
-			fmt.Println(d)
+		if n == 3 {
+			break
 		}
+		fmt.Println(d)
 		n++
 	}
-	fmt.Println("total", n)
 	// Output:
 	// 2077/01/01
 	// 2077/01/19
 	// 2077/01/25
-	// total 294
 }
 
 func ExampleInfo() {

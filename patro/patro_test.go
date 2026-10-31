@@ -137,21 +137,102 @@ func TestEmpty(t *testing.T) {
 	}
 }
 
-func TestCoverage(t *testing.T) {
-	r := Coverage()
-	if r.Start() != nepdate.MustNew(2077, 1, 1) || r.End() != nepdate.MustNew(2084, 8, 20) {
-		t.Errorf("Coverage() = %v..%v", r.Start(), r.End())
+// TestSummary compares the compiled tables and coverage with
+// shared/spec/vectors/patro-summary.json, so dropped or duplicated data fails here.
+func TestSummary(t *testing.T) {
+	sum := loadSummary(t)
+	start, err := nepdate.Parse(sum.FirstDay)
+	if err != nil {
+		t.Fatal(err)
+	}
+	end, err := nepdate.Parse(sum.LastDay)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tithiStart, err := nepdate.Parse(sum.TithiFirstDay)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tithiEnd, err := nepdate.Parse(sum.TithiLastDay)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r := Coverage(); r.Start() != start || r.End() != end || r.Len() != sum.Days {
+		t.Errorf("Coverage() = %v..%v (%d days), want %v..%v (%d days)",
+			r.Start(), r.End(), r.Len(), start, end, sum.Days)
+	}
+	if got := nepdate.Min.DaysUntil(start); got != sum.FirstSerial {
+		t.Errorf("first coverage serial %d, want %d", got, sum.FirstSerial)
+	}
+	if got := nepdate.Min.DaysUntil(end); got != sum.LastSerial {
+		t.Errorf("last coverage serial %d, want %d", got, sum.LastSerial)
+	}
+
+	daysWithTithi, holidays, eventDays, events := 0, 0, 0, 0
+	var firstTithi, lastTithi nepdate.Date
+	for i, rec := range dayInfo {
+		if rec&tithiMask != 0 {
+			daysWithTithi++
+			d, err := start.AddDays(i)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if firstTithi.IsZero() {
+				firstTithi = d
+			}
+			lastTithi = d
+		}
+		if rec&holidayBit != 0 {
+			holidays++
+		}
+		if n := int((rec >> countShift) & countMask); n > 0 {
+			eventDays++
+			events += n
+		}
+	}
+	eventIDs := make(map[uint16]bool, len(eventName))
+	for _, id := range eventName {
+		eventIDs[id] = true
+	}
+	checks := []struct {
+		name string
+		got  int
+		want int
+	}{
+		{"dayInfo entries", len(dayInfo), sum.Days},
+		{"eventName entries", len(eventName), sum.Events},
+		{"nameOff entries", len(nameOff), 2*sum.Names + 1},
+		{"nameText bytes", len(nameText), sum.NameBytes},
+		{"tithi names", tithiNames, sum.TithiNames},
+		{"tithi days", daysWithTithi, sum.TithiDays},
+		{"holidays", holidays, sum.Holidays},
+		{"event days", eventDays, sum.EventDays},
+		{"events", events, sum.Events},
+		{"event names", len(eventIDs), sum.EventNames},
+		{"names", (len(nameOff) - 1) / 2, sum.Names},
+	}
+	for _, c := range checks {
+		if c.got != c.want {
+			t.Errorf("%s = %d, want %d from the summary", c.name, c.got, c.want)
+		}
+	}
+	if firstTithi != tithiStart || lastTithi != tithiEnd {
+		t.Errorf("tithi range %v..%v, want %v..%v", firstTithi, lastTithi, tithiStart, tithiEnd)
+	}
+	if got := nepdate.Min.DaysUntil(firstTithi); got != sum.TithiFirstSerial {
+		t.Errorf("first tithi serial %d, want %d", got, sum.TithiFirstSerial)
 	}
 }
 
 func TestPublicHolidays(t *testing.T) {
 	data := loadData(t)
+	sum := loadSummary(t)
 	var got []nepdate.Date
 	for d := range PublicHolidays() {
 		got = append(got, d)
 	}
-	if len(got) != 294 || !slices.IsSortedFunc(got, nepdate.Date.Compare) {
-		t.Fatalf("%d holidays, sorted %v", len(got), slices.IsSortedFunc(got, nepdate.Date.Compare))
+	if len(got) != sum.Holidays || !slices.IsSortedFunc(got, nepdate.Date.Compare) {
+		t.Fatalf("%d holidays, want %d, sorted %v", len(got), sum.Holidays, slices.IsSortedFunc(got, nepdate.Date.Compare))
 	}
 	for _, d := range got {
 		if !data[d].Holiday {

@@ -48,8 +48,10 @@ func init() {
 		benchAD[i] = time.Date(y, m, day, 0, 0, 0, 0, time.UTC)
 		benchText[i] = d.String()
 	}
-	// The patro coverage is serials 64285..67077 (shared/spec/PATRO.md section 2).
-	const c0, c1 = 64285, 67077
+	// The patro coverage, from the generated tables (shared/spec/PATRO.md section 2).
+	cov := patro.Coverage()
+	c0 := nepdate.Min.DaysUntil(cov.Start())
+	c1 := nepdate.Min.DaysUntil(cov.End())
 	for i := range patroDates {
 		d, err := nepdate.Min.AddDays(c0 + i*((c1-c0)/63))
 		if err != nil {
@@ -81,7 +83,7 @@ func TestInputs(t *testing.T) {
 			t.Fatalf("text %d: Parse(%q) = %s, %v; want %s", i, benchText[i], d2, err, benchDates[i])
 		}
 	}
-	p0, _ := nepdate.New(2077, nepdate.Baishakh, 1)
+	p0 := patro.Coverage().Start()
 	if patroDates[0] != p0 {
 		t.Fatalf("patroDates[0] = %s, want %s", patroDates[0], p0)
 	}
