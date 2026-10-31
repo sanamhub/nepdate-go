@@ -1,8 +1,7 @@
 # Port plan: phases and acceptance criteria every port meets
 
-Language-neutral. Each port's `docs/plan/00-ROADMAP.md` maps these phases to its own task IDs
-(`G`, `T`, `P`, `S`, `K`, `L` for Rust) and adds only what is language-specific. Names below are
-neutral; each port uses the names in its own `docs/API.md`.
+Language-neutral. A new port works through these phases in order and adds only what is
+language-specific. Names below are neutral; each port uses the names in its own `docs/API.md`.
 
 ## Phase 0: repository and CI
 
@@ -16,7 +15,7 @@ neutral; each port uses the names in its own `docs/API.md`.
 
 ## C# test catalogue (every phase from 1 to 4)
 
-`vectors/csharp-tests/catalog.tsv` (hub task H5) lists every test case of C# NepDate's own test
+`vectors/csharp-tests/catalog.tsv` lists every test case of C# NepDate's own test
 suite (395 `[Fact]` and 29 `[Theory]` methods with 147 `[InlineData]` rows at `cb05cb65`), each
 tagged with the phase that covers it, `n/a` (C#-only API such as `TypeConverter` or XML) or a
 PARITY deviation. AC for each phase: every catalogue row tagged with that phase has a test in the
@@ -28,8 +27,8 @@ The phase is the file's main subject, so a few rows need an API from a later pha
 of `NepaliDateConstructionTests`, `NepaliDatePropertiesTests` and `OptimizationVerificationTests`
 build dates from strings (phase 3 parsing) or read `Today` (phase 4). Write those tests in phase 1
 anyway: a row that expects a date or a validation error builds it with the constructor and a marker
-naming the later task; a row that needs the missing API is skipped with that marker (for example
-`#[ignore = "L4-03: needs FromStr"]`, `t.Skip("pending G3-04")`). The later phase removes the
+naming the later phase; a row that needs the missing API is skipped with that marker (for example
+`#[ignore = "phase 3: needs FromStr"]`, `t.Skip("phase 3: needs Parse")`). The later phase removes the
 marker. The phase's AC counts these rows as covered; the later phase's AC includes removing every
 marker that names it.
 
@@ -72,7 +71,9 @@ marker that names it.
   If the clock is outside the supported range (before AD 1844-04-11 or after 2143-04-15), "today"
   returns the out-of-range error where the port's "today" can fail, and otherwise returns `MIN` or
   `MAX`, documented on the function.
-- AC: T = 2190, H = 294, E = 1671; every PATRO §4 anchor; coverage 2077-01-01..2084-08-20; the core
+- AC: the tables report the `tithi_days`, `holidays` and `event_days` of
+  `spec/vectors/patro-summary.json`, and their coverage is its `first_day` to `last_day`; every
+  PATRO §4 anchor; the core
   package's manifest has no dependency on `nepdate-patro`, and its built artefact doesn't contain
   the string `World Day Against Human Trafficking` (CI checks it; the artefact is the release binary
   of a small program that uses only the core for Rust, Go and Swift, the core jar for Kotlin, the
@@ -86,6 +87,32 @@ marker that names it.
 - Benchmarks per `BENCHMARK.md`: operations B1–B8 on the 64 dates, on the reference machine, against
   the port's `docs/competitors.md` and the C# NepDate baseline, with bytes allocated per operation
   and an "agrees with `shared/data`" column, published in `docs/benchmarks.md`.
-- AC: every BENCHMARK §6 target met, or the miss reported to the human with the numbers.
+- AC: every BENCHMARK §6 target met, or the miss reported to the maintainer with the numbers.
 - Release workflow with preflight (version, tag and changelog agree), approval gate, notes from the
-  changelog; version 0.1.0 prepared by the agent, tagged by the human.
+  changelog; the maintainer tags version 0.1.0.
+
+## Scheduled published check
+
+A port is not released until it has a scheduled `verify-published.yml` in the shape below and an
+entry in `spec/packages.json`. A version can be yanked, a registry can stop serving a file, or a
+deleted tag can leave a package URL broken; without a schedule the first person to notice is a
+user. Before a language's first release:
+
+- [ ] `verify-published.yml` with a weekly `schedule` cron, one port per hour, and a daily metadata
+      cron; `latest` as the default version; a `resolve` job so every job of a run checks the same
+      version; a Linux-only weekly matrix with one entry per package manager, and the full
+      three-OS matrix for releases and manual runs.
+- [ ] A script that resolves `latest` the way a plain install does (`--resolve`), checks the
+      registry metadata with HEAD requests and no download (`--metadata`), prints the resolved
+      version, and installs once per manager.
+- [ ] `scripts/published-issue.sh` with its fake-`gh` test; only the report job has `issues:
+      write`, and the check jobs have `contents: read`.
+- [ ] An entry in `spec/packages.json`: the repository, the registry, the package names, the
+      install command a user types, and the workflow file name.
+- [ ] The release runbook names the weekly and daily runs and the `published-check` label, and the
+      changelog has a line under Unreleased.
+
+`tools/package_status.py` reads `spec/packages.json` and reports each port's newest scheduled
+install check and newest scheduled registry check;
+`.github/workflows/package-status.yml` runs it after the last port's weekly check.
+
