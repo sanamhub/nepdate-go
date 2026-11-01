@@ -238,3 +238,19 @@ func TestOptionalMissingToolIsSkipped(t *testing.T) {
 		t.Errorf("optional(missing tool) = %v, want errSkipped", err)
 	}
 }
+
+func TestLatestRelease(t *testing.T) {
+	got, err := latestRelease("## [Unreleased]\n\n### Changed\n\n- x\n\n## [0.1.0-beta.1] - 2026-10-21\n")
+	if err != nil || got != "0.1.0-beta.1" {
+		t.Errorf("latestRelease() = %q, %v, want 0.1.0-beta.1", got, err)
+	}
+	for _, log := range []string{
+		"## [Unreleased]\n",
+		"## [0.1.0]\n",
+		"## [v0.1.0] - 2026-10-21\n",
+	} {
+		if _, err := latestRelease(log); err == nil {
+			t.Errorf("latestRelease(%q) accepted", log)
+		}
+	}
+}
