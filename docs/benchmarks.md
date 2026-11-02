@@ -30,8 +30,8 @@ go test -c -o bench.test.exe .
 start "" /high /affinity 4 /b /wait bench.test.exe -test.run=^$ -test.bench=. -test.benchtime=300ms -test.count=10 > go-bench-2026-11-02.txt
 ```
 
-The raw output is [`go-bench-2026-11-02.txt`](benchmarks/go-bench-2026-11-02.txt), and the console
-log with the load samples is [`go-bench-2026-11-02.log`](benchmarks/go-bench-2026-11-02.log).
+The raw output is [`go-bench-2026-11-02.txt`](../benchmarks/go-bench-2026-11-02.txt), and the console
+log with the load samples is [`go-bench-2026-11-02.log`](../benchmarks/go-bench-2026-11-02.log).
 
 ## Results
 
