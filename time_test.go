@@ -27,8 +27,11 @@ func TestFromTime(t *testing.T) {
 
 func TestTime(t *testing.T) {
 	d := MustNew(2081, Shrawan, 15)
-	if got := d.Time(nil); !got.Equal(time.Date(2024, time.July, 30, 0, 0, 0, 0, time.UTC)) || got.Location() != time.UTC {
+	if got := d.Time(nil); !got.Equal(time.Date(2024, time.July, 30, 0, 0, 0, 0, npt)) || got.Location().String() != "Asia/Kathmandu" && got.Location().String() != "NPT" {
 		t.Errorf("Time(nil) = %v", got)
+	}
+	if got := d.Time(time.UTC); !got.Equal(time.Date(2024, time.July, 30, 0, 0, 0, 0, time.UTC)) || got.Location() != time.UTC {
+		t.Errorf("Time(UTC) = %v", got)
 	}
 	if got := d.Time(npt); !got.Equal(time.Date(2024, time.July, 30, 0, 0, 0, 0, npt)) {
 		t.Errorf("Time(NPT) = %v", got)

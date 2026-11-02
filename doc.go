@@ -14,7 +14,22 @@
 // converts dates links none of the patro data.
 //
 // A Date marshals to JSON as "YYYY-MM-DD". Marshalling the zero Date returns ErrOutOfRange, so
-// an optional date should be a *Date: nil marshals as null.
+// an optional date should be a *Date: nil marshals as null. Unmarshalling null is rejected with
+// ErrOutOfRange for the same reason.
+//
+// The zero Date is the only invalid value the type can hold, and it means "no date". Its
+// methods never invent a date:
+//
+//   - IsZero reports true, and the accessors Year, Month, Day, YearDay, MonthLength, YearLength,
+//     YMD and Quarter return 0, Gregorian returns 0, 0, 0, Month returns 0, and String, Short,
+//     Long and Format return "".
+//   - Operations that return an error return ErrOutOfRange: AddDays, AddMonths, AddYears,
+//     MarshalText, AppendText, MarshalJSON, UnmarshalJSON, and ToEnglishDates.
+//   - IsToday, IsYesterday and IsTomorrow report false.
+//   - The zero Range is empty, and the range methods return the zero of their result type.
+//
+// Use IsZero before an accessor when 0 would be ambiguous. A valid date is never zero, so a
+// plain comparison d == nepdate.Date{} is also correct.
 package nepdate
 
 //go:generate go run ./internal/gen

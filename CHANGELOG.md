@@ -6,6 +6,38 @@ All notable changes to this module are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `Date.YearLength`, the number of days in the BS year, 364 to 367.
+- `Date.IsToday`, `Date.IsYesterday` and `Date.IsTomorrow`, each taking a location like `Today`.
+- `TryParse` and `TryParseLenient`, the non-throwing forms of the two parsers.
+- `FromYMD` and `Date.YMD` for the `YYYYMMDD` integer form.
+- `ToNepaliDates`, `ToEnglishDates` and `ToEnglishDatesFromStrings`, the ordered batch converters.
+- Range factories `SingleDay`, `FromDayCount`, `CurrentMonth`, `CurrentFiscalYear` and
+  `CurrentCalendarYear`.
+- Range operations `ContainsRange`, `Overlaps`, `IsAdjacentTo`, `Intersect`, `Union`, `Except`,
+  `SplitByMonth`, `SplitByFiscalQuarter`, `DatesWithInterval`, `WorkingDays` and `WeekendDays`.
+- `Range.String` and `Range.Format`, plus equality and map-key use through the comparable bounds.
+- `Date.MarshalJSON` and `Date.UnmarshalJSON`, so a date is a JSON string and `null` is rejected.
+- `docs/API.md` now documents every exported identifier, grouped like the shared API inventory.
+
+### Changed
+
+- `Range` has a `String` method, so `%v` prints `start - end` instead of the raw struct.
+- A pattern ending in a single backslash writes a literal backslash, as the shared formatting
+  spec requires.
+
+### Breaking
+
+- `Time(nil)` now means Asia/Kathmandu, the same default as `Today`, instead of UTC.
+  Migration: pass `time.UTC` to keep midnight UTC, or use `Time(nil)` for Nepal.
+- A pattern ending in one backslash used to drop it; it now writes `\`.
+  Migration: remove the trailing backslash when the old output without it was intended.
+- JSON `null` decoded into a `Date` used to leave the zero value without an error; it now returns
+  `ErrOutOfRange`.
+  Migration: use `*Date` for an optional field, since nil already marshals and unmarshals as
+  `null`.
+
 ## [0.1.0-rc.1] - 2026-11-03
 
 ### Changed

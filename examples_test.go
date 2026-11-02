@@ -351,3 +351,111 @@ func ExampleRange_Days() {
 	// 2081/04/02
 	// 2081/04/03
 }
+
+func ExampleDate_YearLength() {
+	d := nepdate.MustNew(2081, nepdate.Baishakh, 1)
+	fmt.Println(d.YearLength())
+	// Output: 366
+}
+
+func ExampleFromYMD() {
+	d, err := nepdate.FromYMD(20810415)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(d, d.YMD())
+	// Output: 2081/04/15 20810415
+}
+
+func ExampleTryParse() {
+	d, ok := nepdate.TryParse("2081/04/15")
+	fmt.Println(d, ok)
+	d, ok = nepdate.TryParse("2081/04")
+	fmt.Println(d.IsZero(), ok)
+	// Output:
+	// 2081/04/15 true
+	// true false
+}
+
+func ExampleTryParseLenient() {
+	d, ok := nepdate.TryParseLenient("15 Shrawan 2081")
+	fmt.Println(d, ok)
+	// Output: 2081/04/15 true
+}
+
+func ExampleToNepaliDates() {
+	times := []time.Time{
+		time.Date(2024, time.July, 30, 0, 0, 0, 0, time.UTC),
+		time.Date(2024, time.July, 31, 0, 0, 0, 0, time.UTC),
+	}
+	dates, err := nepdate.ToNepaliDates(times)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(dates)
+	// Output: [2081/04/15 2081/04/16]
+}
+
+func ExampleToEnglishDates() {
+	dates := []nepdate.Date{
+		nepdate.MustNew(2081, nepdate.Shrawan, 15),
+		nepdate.MustNew(2081, nepdate.Shrawan, 16),
+	}
+	times, err := nepdate.ToEnglishDates(dates)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(times[0].Format("2006-01-02"), times[1].Format("2006-01-02"))
+	// Output: 2024-07-30 2024-07-31
+}
+
+func ExampleToEnglishDatesFromStrings() {
+	times, err := nepdate.ToEnglishDatesFromStrings([]string{"2081-04-15", "2081-04-16"})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(times[0].Format("2006-01-02"), times[1].Format("2006-01-02"))
+	// Output: 2024-07-30 2024-07-31
+}
+
+func ExampleSingleDay() {
+	r := nepdate.SingleDay(nepdate.MustNew(2081, nepdate.Shrawan, 15))
+	fmt.Println(r.Start(), r.End(), r.Len())
+	// Output: 2081/04/15 2081/04/15 1
+}
+
+func ExampleFromDayCount() {
+	r, err := nepdate.FromDayCount(nepdate.MustNew(2081, nepdate.Shrawan, 15), 5)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(r.Start(), r.End(), r.Len())
+	// Output: 2081/04/15 2081/04/19 5
+}
+
+func ExampleCurrentMonth() {
+	r, err := nepdate.CurrentMonth(time.UTC)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(r.Len() > 0)
+	// Output: true
+}
+
+func ExampleCurrentFiscalYear() {
+	r, err := nepdate.CurrentFiscalYear(time.UTC)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(r.Len() > 0)
+	// Output: true
+}
+
+func ExampleCurrentCalendarYear() {
+	r, err := nepdate.CurrentCalendarYear(time.UTC)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(r.Len() > 0)
+	// Output: true
+}

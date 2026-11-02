@@ -70,3 +70,14 @@ func (d Date) MonthLength() int {
 	}
 	return monthLen(int(d.year), Month(d.month))
 }
+
+// YearLength returns the number of days in d's BS year, 364..367, or 0 for the zero Date. It is
+// the sum of the twelve month lengths (PARITY D-12); it is not Gregorian leap-ness. It does not
+// allocate.
+func (d Date) YearLength() int {
+	if d.IsZero() {
+		return 0
+	}
+	first := (int(d.year) - minYear) * 12
+	return int(bsMonthStart[first+12] - bsMonthStart[first])
+}
