@@ -6,6 +6,8 @@ All notable changes to this module are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-rc.1] - 2026-11-03
+
 ### Changed
 
 - The published-package check now also runs weekly and daily, and reports a failure through the
