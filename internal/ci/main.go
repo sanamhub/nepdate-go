@@ -1,6 +1,7 @@
 // Command ci runs every quality gate of ADR-0004 in order and stops at the first failure.
 //
 //	go run ./internal/ci                       run the gates
+//	go run ./internal/ci version               print the newest released version
 //	go run ./internal/ci release-check v0.1.0  check the release inputs for version 0.1.0
 //
 // The last line is always "ci: <passed>/<total> gates passed", followed by ", <n> skipped (<names>)"
@@ -33,15 +34,29 @@ type gate struct {
 
 func main() {
 	if len(os.Args) > 1 {
-		if os.Args[1] != "release-check" || len(os.Args) != 3 {
-			fmt.Fprintln(os.Stderr, "usage: go run ./internal/ci [release-check vX.Y.Z]")
+		switch {
+		case os.Args[1] == "release-check" && len(os.Args) == 3:
+			if err := releaseReadiness(".", os.Args[2], moduleList); err != nil {
+				fmt.Fprintln(os.Stderr, "release-check:", err)
+				os.Exit(1)
+			}
+			fmt.Println("release-check: ok")
+		case os.Args[1] == "version" && len(os.Args) == 2:
+			changelog, err := readReleaseFile(".", "CHANGELOG.md")
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "version:", err)
+				os.Exit(1)
+			}
+			version, err := latestRelease(changelog)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "version:", err)
+				os.Exit(1)
+			}
+			fmt.Println(version)
+		default:
+			fmt.Fprintln(os.Stderr, "usage: go run ./internal/ci [version | release-check vX.Y.Z]")
 			os.Exit(2)
 		}
-		if err := releaseReadiness(".", os.Args[2], moduleList); err != nil {
-			fmt.Fprintln(os.Stderr, "release-check:", err)
-			os.Exit(1)
-		}
-		fmt.Println("release-check: ok")
 		return
 	}
 	os.Exit(runGates(gates()))
@@ -304,6 +319,24 @@ var (
 		`(-(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*)?$`)
 	dateSuffix = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}\s*$`)
 )
+
+// latestRelease returns the newest released version in a changelog. Keep a Changelog lists the
+// newest section first, so it is the first dated "## [X.Y.Z(-PRERELEASE)] - YYYY-MM-DD" line.
+func latestRelease(changelog string) (string, error) {
+	for _, line := range strings.Split(changelog, "\n") {
+		line = strings.TrimRight(line, "\r")
+		rest, ok := strings.CutPrefix(line, "## [")
+		if !ok {
+			continue
+		}
+		version, rest, ok := strings.Cut(rest, "] - ")
+		if !ok || !dateSuffix.MatchString(rest) || !tagPattern.MatchString("v"+version) {
+			continue
+		}
+		return version, nil
+	}
+	return "", errors.New("CHANGELOG.md has no released version heading")
+}
 
 // releaseCheck succeeds only if tag is vX.Y.Z or vX.Y.Z-PRERELEASE and the changelog has a line
 // "## [X.Y.Z(-PRERELEASE)] - YYYY-MM-DD" (ADR-0005).
