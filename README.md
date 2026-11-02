@@ -48,7 +48,8 @@ Package docs: <https://pkg.go.dev/github.com/sanamhub/nepdate-go>
 
 ## Quick start
 
-The snippets use `fmt`, `log` and `time` from the standard library, plus the imports above.
+The snippets use `fmt`, `log`, `time` and `errors` from the standard library, plus the imports
+above.
 Construct a BS date and read its Gregorian date:
 
 ```go
@@ -110,6 +111,60 @@ Read the almanac for a date:
 
 A Date marshals to JSON as `"YYYY-MM-DD"`. Saving an unset (zero) Date returns an error, so use
 `*Date` for an optional field; nil marshals as null.
+
+## More of the API
+
+The full surface, in the same groups as the shared spec, is in
+[docs/API.md](https://github.com/sanamhub/nepdate-go/blob/main/docs/API.md).
+
+Dates and conversion:
+
+```go
+d, _ := nepdate.New(2081, nepdate.Shrawan, 15)
+y, m, day := d.Gregorian()
+n, _ := nepdate.FromYMD(d.YMD())
+fmt.Println(y, int(m), day, n.YearLength())
+// 2024 7 30 366
+```
+
+Arithmetic and differences:
+
+```go
+d := nepdate.MustNew(2081, nepdate.Shrawan, 32)
+clamped, _ := d.AddMonths(2, nepdate.Clamp)
+spilled, _ := d.AddMonths(2, nepdate.Spill)
+fmt.Println(clamped, spilled, d.DaysUntil(nepdate.Max))
+// 2081/06/30 2081/07/02 43340
+```
+
+Formatting and parsing:
+
+```go
+d := nepdate.MustNew(2081, nepdate.Shrawan, 15)
+fmt.Println(d.Format("MMM d, yyyy", nepdate.Nepali))
+parsed, ok := nepdate.TryParseLenient("15 Shrawan 2081")
+fmt.Println(parsed, ok)
+// साउन १५, २०८१
+// 2081/04/15 true
+```
+
+Ranges and fiscal years:
+
+```go
+r, _ := nepdate.FromDayCount(nepdate.MustNew(2081, nepdate.Shrawan, 10), 11)
+fy := nepdate.FiscalYearOf(r.Start())
+fmt.Println(r.Format(nepdate.YMD, nepdate.Dash, nepdate.English), fy.Label(nepdate.English))
+// 2081-04-10 - 2081-04-20 2081/82
+```
+
+Errors and the zero value:
+
+```go
+var d nepdate.Date
+_, err := d.AddDays(1)
+fmt.Println(d.IsZero(), errors.Is(err, nepdate.ErrOutOfRange))
+// true true
+```
 
 ## More
 

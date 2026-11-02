@@ -6,7 +6,7 @@ import (
 )
 
 func TestFormatPatternGolden(t *testing.T) {
-	rows := readTable(t, "shared/spec/vectors/csharp-golden/format-pattern.tsv", "\t", 451)
+	rows := readTable(t, "shared/spec/vectors/csharp-golden/format-pattern.tsv", "\t", 452)
 	skipped := 0
 	for _, row := range rows {
 		d := bsDate(t, row["bs"])
@@ -45,8 +45,8 @@ func TestFormatPatternExamples(t *testing.T) {
 		{"D", English, "Shrawan 15, 2081"},
 		{"D", Nepali, "साउन १५, २०८१"},
 		{"s", English, "2081-04-15"},
-		{"s", Nepali, "२०८१-०४-१५"},      // FORMATTING §5: digits per lang
-		{`yyyy-MM\`, English, "2081-04"}, // a trailing lone backslash writes nothing
+		{"s", Nepali, "२०८१-०४-१५"},       // FORMATTING §5: digits per lang
+		{`yyyy-MM\`, English, `2081-04\`}, // a trailing lone backslash writes itself
 		// token runs and literals
 		{"y", English, "81"},
 		{"yyy", English, "81"},
@@ -58,7 +58,7 @@ func TestFormatPatternExamples(t *testing.T) {
 		{"''", English, ""},
 		{"yyyy 'वि.सं.'", Nepali, "२०८१ वि.सं."},
 		{"dd/MM साल yyyy", Nepali, "१५/०४ साल २०८१"},
-		{`\`, English, ""},
+		{`\`, English, `\`},
 		{"x", English, "x"},
 	}
 	for _, c := range cases {

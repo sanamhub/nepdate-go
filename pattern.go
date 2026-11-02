@@ -26,9 +26,12 @@ func (d Date) AppendFormat(b []byte, pattern string, lang Lang) []byte {
 		c := pattern[i]
 		switch c {
 		case '\\':
-			// The escaped byte is copied; the rest of a multi-byte character follows as-is.
+			// The escaped byte is copied; the rest of a multi-byte character follows as-is. A
+			// backslash at the very end writes itself (FORMATTING §5).
 			if i+1 < len(pattern) {
 				b = append(b, pattern[i+1])
+			} else {
+				b = append(b, '\\')
 			}
 			i += 2
 		case '\'':

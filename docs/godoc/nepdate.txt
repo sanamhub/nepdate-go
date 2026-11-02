@@ -17,6 +17,23 @@ program that only converts dates links none of the patro data.
 
 A Date marshals to JSON as "YYYY-MM-DD". Marshalling the zero Date returns
 ErrOutOfRange, so an optional date should be a *Date: nil marshals as null.
+Unmarshalling null is rejected with ErrOutOfRange for the same reason.
+
+The zero Date is the only invalid value the type can hold, and it means "no
+date". Its methods never invent a date:
+
+  - IsZero reports true, and the accessors Year, Month, Day, YearDay,
+    MonthLength, YearLength, YMD and Quarter return 0, Gregorian returns 0, 0,
+    0, Month returns 0, and String, Short, Long and Format return "".
+  - Operations that return an error return ErrOutOfRange: AddDays, AddMonths,
+    AddYears, MarshalText, AppendText, MarshalJSON, UnmarshalJSON, and
+    ToEnglishDates.
+  - IsToday, IsYesterday and IsTomorrow report false.
+  - The zero Range is empty, and the range methods return the zero of their
+    result type.
+
+Use IsZero before an accessor when 0 would be ambiguous. A valid date is never
+zero, so a plain comparison d == nepdate.Date{} is also correct.
 
 VARIABLES
 
@@ -42,6 +59,17 @@ var (
 
 
 FUNCTIONS
+
+func ToEnglishDates(dates []Date) ([]time.Time, error)
+    ToEnglishDates converts every date to midnight UTC on its Gregorian day,
+    keeping the input order. It returns ErrOutOfRange for the zero Date.
+    It allocates the result slice and nothing else.
+
+func ToEnglishDatesFromStrings(texts []string) ([]time.Time, error)
+    ToEnglishDatesFromStrings parses every string with Parse and converts it
+    to midnight UTC on its Gregorian day, keeping the input order. It stops at
+    the first invalid string and returns nil with that error. It allocates the
+    result slice and, on a failed parse, the parse error.
 
 func WeekdayName(w time.Weekday, lang Lang) string
     WeekdayName returns the full name of w in lang, or "" if w is not
@@ -76,6 +104,12 @@ func FromTime(t time.Time) (Date, error)
     somewhere else. It returns ErrOutOfRange outside AD 1844-04-11..2143-04-15.
     It does not allocate.
 
+func FromYMD(n int) (Date, error)
+    FromYMD returns the date of an integer in YYYYMMDD form, so 20810415 is
+    2081-04-15. It returns New's errors: ErrOutOfRange for a year outside
+    1901..2199, ErrInvalidMonth for a month outside 1..12 and ErrInvalidDay for
+    a day outside the month. It does not allocate.
+
 func MustNew(year int, month Month, day int) Date
     MustNew is New for constants and tests. It panics with New's error.
 
@@ -104,12 +138,27 @@ func ParseLenient(s string) (Date, error)
     and New's error when the date is invalid. It does not allocate on success;
     a failed call allocates one *ParseError.
 
+func ToNepaliDates(times []time.Time) ([]Date, error)
+    ToNepaliDates converts every time to its BS date in the time's own
+    location, keeping the input order. It stops at the first time outside AD
+    1844-04-11..2143-04-15 and returns nil with that error. It allocates the
+    result slice and nothing else.
+
 func Today(loc *time.Location) (Date, error)
     Today returns today's BS date in loc. A nil loc means Asia/Kathmandu,
     or the fixed zone NPT (UTC+05:45) when the system has no time zone database;
     the library doesn't embed one. A server clock in UTC is 5 h 45 min behind
     Nepal, so pass the zone you mean. It returns ErrOutOfRange if the clock is
     outside the supported range.
+
+func TryParse(s string) (Date, bool)
+    TryParse is Parse without an error: it returns the date and true, or the
+    zero Date and false when the text is not in the strict form or names an
+    invalid date.
+
+func TryParseLenient(s string) (Date, bool)
+    TryParseLenient is ParseLenient without an error: it returns the date and
+    true, or the zero Date and false when the input is not a date.
 
 func (d Date) AddDays(n int) (Date, error)
     AddDays returns d moved by n days. It returns ErrOutOfRange if the result is
@@ -183,6 +232,21 @@ func (d Date) Gregorian() (year int, month time.Month, day int)
     Gregorian returns the AD date of d, or (0, 0, 0) for the zero Date. It does
     not allocate.
 
+func (d Date) IsToday(loc *time.Location) bool
+    IsToday reports whether d is today in loc. A nil loc means Asia/Kathmandu,
+    like Today. It returns false for the zero Date and when the clock is outside
+    the supported range.
+
+func (d Date) IsTomorrow(loc *time.Location) bool
+    IsTomorrow reports whether d is the day after today in loc. A nil loc means
+    Asia/Kathmandu, like Today. It returns false for the zero Date and when the
+    clock is outside the supported range.
+
+func (d Date) IsYesterday(loc *time.Location) bool
+    IsYesterday reports whether d is the day before today in loc. A nil loc
+    means Asia/Kathmandu, like Today. It returns false for the zero Date and
+    when the clock is outside the supported range.
+
 func (d Date) IsZero() bool
     IsZero reports whether d is the zero Date, which is "no date". It does not
     allocate.
@@ -194,6 +258,11 @@ func (d Date) LastOfMonth() Date
 func (d Date) Long(opts LongOptions, lang Lang) string
     Long returns d as "[Weekday, ]Month DD[, YYYY]" in lang (FORMATTING §4),
     or "" for the zero Date.
+
+func (d Date) MarshalJSON() ([]byte, error)
+    MarshalJSON returns d as the JSON string "YYYY-MM-DD" (PARITY D-11).
+    It returns ErrOutOfRange for the zero Date, so an optional date should be a
+    *Date, whose nil value marshals as null.
 
 func (d Date) MarshalText() ([]byte, error)
     MarshalText returns d as "YYYY-MM-DD" (PARITY D-11), so encoding/json
@@ -229,8 +298,15 @@ func (d Date) String() string
     for the zero Date.
 
 func (d Date) Time(loc *time.Location) time.Time
-    Time returns midnight at the start of d in loc, or in UTC when loc is nil.
+    Time returns midnight at the start of d in loc. A nil loc means
+    Asia/Kathmandu, the same default as Today, or the fixed zone NPT (UTC+05:45)
+    when the system has no time zone database. Pass time.UTC for midnight UTC.
     The zero Date returns the zero time.Time.
+
+func (d *Date) UnmarshalJSON(data []byte) error
+    UnmarshalJSON sets *d from a JSON string in the strict form Parse accepts.
+    It rejects null with ErrOutOfRange (PARITY D-01) and any non-string value
+    with a *ParseError. On error *d is unchanged.
 
 func (d *Date) UnmarshalText(text []byte) error
     UnmarshalText sets *d from text in the strict form Parse accepts. On error
@@ -241,6 +317,10 @@ func (d Date) Weekday() time.Weekday
     Weekday returns the day of the week of d (ALGORITHM §7). The zero Date
     returns Sunday, the zero value of time.Weekday. It does not allocate.
 
+func (d Date) YMD() int
+    YMD returns d as YYYYMMDD, so 2081-04-15 is 20810415, or 0 for the zero
+    Date. It does not allocate.
+
 func (d Date) Year() int
     Year returns the BS year, 1901..2199, or 0 for the zero Date. It does not
     allocate.
@@ -248,6 +328,11 @@ func (d Date) Year() int
 func (d Date) YearDay() int
     YearDay returns the day of the BS year, 1 for Baishakh 1, or 0 for the zero
     Date. It does not allocate.
+
+func (d Date) YearLength() int
+    YearLength returns the number of days in d's BS year, 364..367, or 0 for
+    the zero Date. It is the sum of the twelve month lengths (PARITY D-12);
+    it is not Gregorian leap-ness. It does not allocate.
 
 type DateOrder uint8
     DateOrder is the order of the three numbers in Short
@@ -419,7 +504,29 @@ type Range struct {
 	// Has unexported fields.
 }
     Range is an inclusive span of dates, start <= end. The zero Range is empty.
-    It has no set operations (PARITY D-09): range over Days and filter instead.
+    Equality is the equality of the two bounds, so == works and a Range can be a
+    map key.
+
+func CurrentCalendarYear(loc *time.Location) (Range, error)
+    CurrentCalendarYear returns the days of the BS calendar year that contains
+    today in loc. A nil loc means Asia/Kathmandu, like Today. It returns Today's
+    error when the clock is outside the supported range.
+
+func CurrentFiscalYear(loc *time.Location) (Range, error)
+    CurrentFiscalYear returns the days of the fiscal year that contains today
+    in loc. A nil loc means Asia/Kathmandu, like Today. It returns Today's error
+    when the clock is outside the supported range, and ErrOutOfRange when the
+    fiscal year ends after Max.
+
+func CurrentMonth(loc *time.Location) (Range, error)
+    CurrentMonth returns the days of the BS month that contains today in loc.
+    A nil loc means Asia/Kathmandu, like Today. It returns Today's error when
+    the clock is outside the supported range.
+
+func FromDayCount(start Date, days int) (Range, error)
+    FromDayCount returns the range of days dates starting at start. It returns
+    ErrOutOfRange if days is below 1, start is the zero Date, or the last day
+    would be after Max. It does not allocate.
 
 func MonthRange(year int, month Month) (Range, error)
     MonthRange returns every day of the given BS month. It returns New's errors
@@ -428,6 +535,10 @@ func MonthRange(year int, month Month) (Range, error)
 func NewRange(start, end Date) (Range, bool)
     NewRange returns the range start..end. It returns false if start is after
     end or either date is the zero Date. It does not allocate.
+
+func SingleDay(d Date) Range
+    SingleDay returns the range that holds only d, or the zero Range for the
+    zero Date. It does not allocate.
 
 func YearRange(year int) (Range, error)
     YearRange returns every day of the BS year, Baishakh 1 to the last day of
@@ -438,21 +549,85 @@ func (r Range) Contains(d Date) bool
     Contains reports whether d is in r. The zero Date is in no range. It does
     not allocate.
 
+func (r Range) ContainsRange(other Range) bool
+    ContainsRange reports whether r fully contains other. A non-empty range
+    contains the zero Range, and the zero Range contains nothing. It does not
+    allocate.
+
+func (r Range) DatesWithInterval(interval int) (iter.Seq[Date], error)
+    DatesWithInterval returns every interval-th day of r, starting at Start
+    and including End when the steps land on it. It returns ErrOutOfRange when
+    interval is below 1. A nil sequence and an error are returned together,
+    so check the error before ranging. It does not allocate while the sequence
+    is ranged over.
+
 func (r Range) Days() iter.Seq[Date]
-    Days returns an iterator over the days of r in order. It does not allocate
+    Days returns an iterator over the days of r in order. It yields every date
+    through Max when the range ends there (PARITY D-16). It does not allocate
     when ranged over directly (ADR-0002 §6).
 
 func (r Range) End() Date
     End returns the last day of r, or the zero Date for the zero Range. It does
     not allocate.
 
+func (r Range) Except(other Range) []Range
+    Except returns the parts of r that are not in other, in date order: none,
+    one or two ranges. It does not allocate when the result is nil or one range.
+
+func (r Range) Format(o DateOrder, sep Separator, lang Lang) string
+    Format returns r as its two dates in order o, separated by sep, in lang's
+    digits, with " - " between them. It returns "" for the zero Range or an
+    unknown order or separator.
+
+func (r Range) Intersect(other Range) (Range, bool)
+    Intersect returns the dates in both r and other. It returns false when they
+    do not overlap, so a caller has no empty range to inspect (PARITY D-01,
+    D-16). It does not allocate.
+
+func (r Range) IsAdjacentTo(other Range) bool
+    IsAdjacentTo reports whether one range starts the day after the other ends.
+    It returns false at Min and Max, so a valid range never fails because it
+    touches the data end (PARITY D-16). It does not allocate.
+
 func (r Range) Len() int
     Len returns the number of days in r, counting both ends, or 0 for the zero
     Range. It does not allocate.
 
+func (r Range) Overlaps(other Range) bool
+    Overlaps reports whether r and other share a date. The zero Range overlaps
+    nothing. It does not allocate.
+
+func (r Range) SplitByFiscalQuarter() []Range
+    SplitByFiscalQuarter returns one range per fiscal quarter that r touches,
+    in date order. The first and last pieces are clipped to r, and a range that
+    reaches Max still returns its last piece (PARITY D-16). The result allocates
+    one slice.
+
+func (r Range) SplitByMonth() []Range
+    SplitByMonth returns one range per BS month that r touches, in date order.
+    The first and last pieces are clipped to r, and a range that reaches Max
+    still returns its last piece (PARITY D-16). The result allocates one slice.
+
 func (r Range) Start() Date
     Start returns the first day of r, or the zero Date for the zero Range.
     It does not allocate.
+
+func (r Range) String() string
+    String returns r as "start - end" with the default date form, or "" for the
+    zero Range.
+
+func (r Range) Union(other Range) Range
+    Union returns the smallest range that covers both r and other. The zero
+    Range adds nothing. It does not allocate.
+
+func (r Range) WeekendDays(includeSunday bool) iter.Seq[Date]
+    WeekendDays returns every Saturday in r, and every Sunday when includeSunday
+    is true. It does not allocate while ranged over.
+
+func (r Range) WorkingDays(excludeSunday bool) iter.Seq[Date]
+    WorkingDays returns every day of r except Saturday, and except Sunday when
+    excludeSunday is true. A range that reaches Max yields its last date (PARITY
+    D-16). It does not allocate while ranged over.
 
 type Separator uint8
     Separator is the character between the numbers in Short.

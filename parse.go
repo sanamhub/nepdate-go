@@ -9,6 +9,20 @@ func Parse(s string) (Date, error) {
 	return parseStrict(s)
 }
 
+// TryParse is Parse without an error: it returns the date and true, or the zero Date and false
+// when the text is not in the strict form or names an invalid date.
+func TryParse(s string) (Date, bool) {
+	d, err := Parse(s)
+	return d, err == nil
+}
+
+// TryParseLenient is ParseLenient without an error: it returns the date and true, or the zero
+// Date and false when the input is not a date.
+func TryParseLenient(s string) (Date, bool) {
+	d, err := ParseLenient(s)
+	return d, err == nil
+}
+
 // text is the input of the parsers. They are generic so UnmarshalText can parse its []byte
 // without converting it to a string first, which would allocate (ADR-0002 §6).
 type text interface{ ~string | ~[]byte }

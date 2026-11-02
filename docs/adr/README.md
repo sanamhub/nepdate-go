@@ -13,3 +13,4 @@ Decisions for this repository only. Decisions that bind every port are in the hu
 | [0006](0006-doc-and-docs-gates.md) | Doc comment and docs gates (amends 0004) | Accepted |
 | [0007](0007-api-compatibility.md) | API compatibility gate (amends 0004 and 0006) | Accepted |
 | [0008](0008-supported-go-versions.md) | Supported Go versions (amends 0001) | Accepted |
+| [0009](0009-api-v1-surface.md) | Full API v1 surface (amends 0003) | Accepted |

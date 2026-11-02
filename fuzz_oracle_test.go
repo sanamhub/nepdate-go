@@ -123,6 +123,8 @@ func refPattern(d Date, pattern string, lang Lang) string {
 		case '\\':
 			if i+1 < len(pattern) {
 				out = append(out, pattern[i+1])
+			} else {
+				out = append(out, '\\')
 			}
 			i += 2
 		case '\'':

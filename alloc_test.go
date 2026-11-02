@@ -38,6 +38,9 @@ func TestAlloc(t *testing.T) {
 		{"Weekday", func() { sinkWeekday = d.Weekday() }},
 		{"YearDay", func() { sinkInt = d.YearDay() }},
 		{"MonthLength", func() { sinkInt = d.MonthLength() }},
+		{"YearLength", func() { sinkInt = d.YearLength() }},
+		{"FromYMD", func() { sinkDate, sinkErr = FromYMD(20810415) }},
+		{"YMD", func() { sinkInt = d.YMD() }},
 		{"Compare", func() { sinkInt = d.Compare(e) }},
 		{"MonthName", func() { sinkString = Shrawan.Name(Nepali) }},
 		{"WeekdayName", func() { sinkString = WeekdayName(time.Tuesday, Nepali) }},
@@ -53,7 +56,14 @@ func TestAlloc(t *testing.T) {
 		{"FiscalYearStart", func() { sinkDate, sinkErr = FiscalYear(2081).Start() }},
 		{"FiscalYearQuarterRange", func() { sinkRange, sinkErr = FiscalYear(2081).QuarterRange(Q4) }},
 		{"MonthRange", func() { sinkRange, sinkErr = MonthRange(2081, Shrawan) }},
+		{"SingleDay", func() { sinkRange = SingleDay(d) }},
+		{"FromDayCount", func() { sinkRange, sinkErr = FromDayCount(d, 5) }},
 		{"RangeContains", func() { sinkBool = month.Contains(d) }},
+		{"RangeContainsRange", func() { sinkBool = month.ContainsRange(SingleDay(d)) }},
+		{"RangeOverlaps", func() { sinkBool = month.Overlaps(SingleDay(d)) }},
+		{"RangeIsAdjacentTo", func() { sinkBool = month.IsAdjacentTo(SingleDay(e)) }},
+		{"RangeIntersect", func() { sinkRange, sinkBool = month.Intersect(SingleDay(d)) }},
+		{"RangeUnion", func() { sinkRange = month.Union(SingleDay(e)) }},
 		{"AppendShort", func() { sinkBytes = d.AppendShort(buf[:0], DMY, Dash, false, Nepali) }},
 		{"AppendLongEnglish", func() { sinkBytes = d.AppendLong(buf[:0], LongOptions{Weekday: true}, English) }},
 		{"AppendLongNepali", func() { sinkBytes = d.AppendLong(buf[:0], LongOptions{Weekday: true}, Nepali) }},
@@ -61,6 +71,7 @@ func TestAlloc(t *testing.T) {
 		{"AppendFormatD", func() { sinkBytes = d.AppendFormat(buf[:0], "D", Nepali) }},
 		{"AppendDigits", func() { sinkBytes = Nepali.AppendDigits(buf[:0], 2081, 4) }},
 		{"ParseASCII", func() { sinkDate, sinkErr = Parse("2081/04/15") }},
+		{"TryParse", func() { sinkDate, sinkBool = TryParse("2081/04/15") }},
 		{"ParseDevanagari", func() { sinkDate, sinkErr = Parse("२०८१/०४/१५") }},
 		{"ParseLenient", func() { sinkDate, sinkErr = ParseLenient("15 Shrawan 2080") }},
 		{"MonthShortName", func() { sinkString = Ashoj.ShortName(English) }},
@@ -69,6 +80,16 @@ func TestAlloc(t *testing.T) {
 		{"UnmarshalText", func() { sinkErr = sinkDate.UnmarshalText(text) }},
 		{"RangeDays", func() {
 			for day := range month.Days() {
+				sinkDate = day
+			}
+		}},
+		{"RangeWorkingDays", func() {
+			for day := range month.WorkingDays(true) {
+				sinkDate = day
+			}
+		}},
+		{"RangeWeekendDays", func() {
+			for day := range month.WeekendDays(true) {
 				sinkDate = day
 			}
 		}},
@@ -86,6 +107,7 @@ func TestAlloc(t *testing.T) {
 // and that a failed parse allocates at most its *ParseError.
 func TestAllocOne(t *testing.T) {
 	d := MustNew(2081, Shrawan, 15)
+	month, _ := MonthRange(2081, Shrawan)
 	cases := []struct {
 		name string
 		max  float64
@@ -95,6 +117,7 @@ func TestAllocOne(t *testing.T) {
 		{"Short", 1, func() { sinkString = d.Short(YMD, Slash, true, Nepali) }},
 		{"Long", 1, func() { sinkString = d.Long(LongOptions{Weekday: true}, Nepali) }},
 		{"Format", 1, func() { sinkString = d.Format("MMMM d, yyyy", English) }},
+		{"RangeFormat", 1, func() { sinkString = month.Format(YMD, Slash, Nepali) }},
 		{"FailedParse", 1, func() { sinkDate, sinkErr = Parse("2081/04/1x") }},
 	}
 	for _, c := range cases {
