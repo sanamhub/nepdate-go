@@ -5,12 +5,9 @@ import (
 	"testing"
 	"time"
 
-	bsdate "github.com/JankariTech/GoBikramSambat"
 	dateConverter "github.com/opensource-nepal/go-nepali/dateConverter"
 	nepdate "github.com/sanamhub/nepdate-go"
 	"github.com/sanamhub/nepdate-go/patro"
-	nepcal "github.com/srishanbhattarai/nepcal/nepcal"
-	bs "github.com/suprimkhatri77/go-bs"
 )
 
 // sink receives the accumulator after each benchmark loop, so the compiler can't remove the work.
@@ -49,47 +46,6 @@ func BenchmarkB1(b *testing.B) {
 		sink = acc
 		nsPerDate(b)
 	})
-	b.Run("library=nepcal", func(b *testing.B) {
-		b.ReportAllocs()
-		acc := 0
-		for b.Loop() {
-			acc = 0
-			for i := range benchDates {
-				t, _ := nepcal.Date(benchY[i], nepcal.Month(benchM[i]), benchD[i])
-				g := t.Gregorian()
-				acc += g.Year() + int(g.Month()) + g.Day()
-			}
-		}
-		sink = acc
-		nsPerDate(b)
-	})
-	b.Run("library=gobs", func(b *testing.B) {
-		b.ReportAllocs()
-		acc := 0
-		for b.Loop() {
-			acc = 0
-			for i := range benchDates {
-				t, _ := bs.BSToAD(bs.Date{Year: benchY[i], Month: benchM[i], Day: benchD[i]})
-				acc += t.Year() + int(t.Month()) + t.Day()
-			}
-		}
-		sink = acc
-		nsPerDate(b)
-	})
-	b.Run("library=gobikramsambat", func(b *testing.B) {
-		b.ReportAllocs()
-		acc := 0
-		for b.Loop() {
-			acc = 0
-			for i := range benchDates {
-				d, _ := bsdate.New(benchD[i], benchM[i], benchY[i])
-				g, _ := d.GetGregorianDate()
-				acc += g.Year() + int(g.Month()) + g.Day()
-			}
-		}
-		sink = acc
-		nsPerDate(b)
-	})
 }
 
 func BenchmarkB2(b *testing.B) {
@@ -116,45 +72,6 @@ func BenchmarkB2(b *testing.B) {
 				if a, err := dateConverter.EnglishToNepali(benchADY[i], benchADM[i], benchADD[i]); err == nil {
 					acc += a[0] + a[1] + a[2]
 				}
-			}
-		}
-		sink = acc
-		nsPerDate(b)
-	})
-	b.Run("library=nepcal", func(b *testing.B) {
-		b.ReportAllocs()
-		acc := 0
-		for b.Loop() {
-			acc = 0
-			for i := range benchDates {
-				t, _ := nepcal.FromGregorian(benchAD[i])
-				acc += t.Year() + int(t.Month()) + t.Day()
-			}
-		}
-		sink = acc
-		nsPerDate(b)
-	})
-	b.Run("library=gobs", func(b *testing.B) {
-		b.ReportAllocs()
-		acc := 0
-		for b.Loop() {
-			acc = 0
-			for i := range benchDates {
-				d, _ := bs.ADToBS(benchAD[i])
-				acc += d.Year + d.Month + d.Day
-			}
-		}
-		sink = acc
-		nsPerDate(b)
-	})
-	b.Run("library=gobikramsambat", func(b *testing.B) {
-		b.ReportAllocs()
-		acc := 0
-		for b.Loop() {
-			acc = 0
-			for i := range benchDates {
-				d, _ := bsdate.NewFromGregorian(benchADD[i], benchADM[i], benchADY[i])
-				acc += d.GetYear() + d.GetMonth() + d.GetDay()
 			}
 		}
 		sink = acc
@@ -187,20 +104,6 @@ func BenchmarkB3(b *testing.B) {
 				t := time.Date(a[0], time.Month(a[1]), a[2], 0, 0, 0, 0, time.UTC).AddDate(0, 0, 1000)
 				a, _ = dateConverter.EnglishToNepali(t.Year(), int(t.Month()), t.Day())
 				acc += a[0] + a[1] + a[2]
-			}
-		}
-		sink = acc
-		nsPerDate(b)
-	})
-	b.Run("library=gobs", func(b *testing.B) {
-		b.ReportAllocs()
-		acc := 0
-		for b.Loop() {
-			acc = 0
-			for i := range benchDates {
-				t, _ := bs.BSToAD(bs.Date{Year: benchY[i], Month: benchM[i], Day: benchD[i]})
-				d, _ := bs.ADToBS(t.AddDate(0, 0, 1000))
-				acc += d.Year + d.Month + d.Day
 			}
 		}
 		sink = acc
@@ -345,38 +248,6 @@ func TestAgrees(t *testing.T) {
 					return -1, -1, -1
 				}
 				return a[0], a[1], a[2]
-			},
-		},
-		"nepcal": {
-			b1: func(i int) (int, int, int) {
-				t, _ := nepcal.Date(benchY[i], nepcal.Month(benchM[i]), benchD[i])
-				g := t.Gregorian()
-				return g.Year(), int(g.Month()), g.Day()
-			},
-			b2: func(i int) (int, int, int) {
-				t, _ := nepcal.FromGregorian(benchAD[i])
-				return t.Year(), int(t.Month()), t.Day()
-			},
-		},
-		"gobs": {
-			b1: func(i int) (int, int, int) {
-				t, _ := bs.BSToAD(bs.Date{Year: benchY[i], Month: benchM[i], Day: benchD[i]})
-				return t.Year(), int(t.Month()), t.Day()
-			},
-			b2: func(i int) (int, int, int) {
-				d, _ := bs.ADToBS(benchAD[i])
-				return d.Year, d.Month, d.Day
-			},
-		},
-		"gobikramsambat": {
-			b1: func(i int) (int, int, int) {
-				d, _ := bsdate.New(benchD[i], benchM[i], benchY[i])
-				g, _ := d.GetGregorianDate()
-				return g.Year(), int(g.Month()), g.Day()
-			},
-			b2: func(i int) (int, int, int) {
-				d, _ := bsdate.NewFromGregorian(benchADD[i], benchADM[i], benchADY[i])
-				return d.GetYear(), d.GetMonth(), d.GetDay()
 			},
 		},
 	}
