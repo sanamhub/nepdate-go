@@ -32,8 +32,7 @@ All notable changes to this module are recorded here. The format follows
 - `Time(nil)` now means Asia/Kathmandu, the same default as `Today`, instead of UTC.
   Migration: pass `time.UTC` to keep midnight UTC, or use `Time(nil)` for Nepal.
 - A pattern ending in one backslash used to drop it; it now writes `\`.
-  Migration: remove the trailing backslash for the old empty output, or write `\\` for one
-  literal backslash.
+  Migration: remove the trailing backslash when the old output without it was intended.
 - JSON `null` decoded into a `Date` used to leave the zero value without an error; it now returns
   `ErrOutOfRange`.
   Migration: use `*Date` for an optional field, since nil already marshals and unmarshals as
