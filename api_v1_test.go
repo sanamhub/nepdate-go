@@ -2,6 +2,8 @@ package nepdate
 
 import (
 	"encoding/json"
+	"math"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -753,5 +755,29 @@ func TestRangeZeroValues(t *testing.T) {
 	}
 	if _, err := r.DatesWithInterval(1); err != nil {
 		t.Errorf("zero Range.DatesWithInterval: %v", err)
+	}
+}
+
+func TestDatesWithIntervalLongSteps(t *testing.T) {
+	r, _ := NewRange(Min, Max)
+	for _, tc := range []struct {
+		interval int
+		want     []Date
+	}{
+		{int(maxSerial), []Date{Min, Max}},
+		{int(maxSerial) + 1, []Date{Min}},
+		{math.MaxInt, []Date{Min}},
+	} {
+		seq, err := r.DatesWithInterval(tc.interval)
+		if err != nil {
+			t.Fatalf("DatesWithInterval(%d): %v", tc.interval, err)
+		}
+		var got []Date
+		for d := range seq {
+			got = append(got, d)
+		}
+		if !slices.Equal(got, tc.want) {
+			t.Errorf("DatesWithInterval(%d) = %v, want %v", tc.interval, got, tc.want)
+		}
 	}
 }
