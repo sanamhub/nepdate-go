@@ -15,9 +15,9 @@ Bikram Sambat (Nepali) calendar for Go. Part of the NepDate family: shared data 
 behaviour spec live in the hub [sanamhub/nepdate](https://github.com/sanamhub/nepdate); the C#
 original is [NepDate](https://github.com/RajuPrasai/NepDate).
 
-> **Status:** 0.1.0-rc.1, a release candidate. The API is listed in
+> **Status:** 0.2.0-rc.1, a release candidate. The API is listed in
 > [docs/API.md](https://github.com/sanamhub/nepdate-go/blob/main/docs/API.md) and may still change
-> before 0.1.0. Patro data (tithi, holidays, events) is informational, not an official calendar.
+> before 0.2.0. Patro data (tithi, holidays, events) is informational, not an official calendar.
 
 Go 1.24 or later. CI runs the tests on Go 1.24.13 and the full gates on Go 1.26 and 1.27.
 
@@ -34,7 +34,7 @@ Go 1.24 or later. CI runs the tests on Go 1.24.13 and the full gates on Go 1.26 
 ## Install
 
 ```
-go get github.com/sanamhub/nepdate-go@v0.1.0-rc.1
+go get github.com/sanamhub/nepdate-go@v0.2.0-rc.1
 ```
 
 ```go
