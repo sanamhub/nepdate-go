@@ -6,6 +6,8 @@ All notable changes to this module are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0-rc.1] - 2026-11-03
+
 ### Added
 
 - `Date.YearLength`, the number of days in the BS year, 364 to 367.
