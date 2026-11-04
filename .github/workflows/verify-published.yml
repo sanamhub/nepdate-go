@@ -61,6 +61,14 @@ jobs:
           version="${INPUT_VERSION:-latest}"
           if [ "$version" = latest ]; then
             version="$(go run ./tools/consumer-check -published latest -resolve)"
+          else
+            # The proxy wants the module version with its v prefix, and a hand-run dispatch may
+            # name it either way. The tag call already passes github.ref_name, so this only
+            # normalises the manual path.
+            case "$version" in
+              v*) ;;
+              *) version="v$version" ;;
+            esac
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Resolved version: \`$version\`" >> "$GITHUB_STEP_SUMMARY"
