@@ -49,8 +49,8 @@ install or run`. Create that label once. A green run is silent.
 
 ## Pre-releases
 
-A tag with a semver pre-release part, such as `v0.1.0-beta.1`, goes through the same workflow. The
-changelog section is `## [0.1.0-beta.1] - YYYY-MM-DD`; a stable section does not satisfy a beta tag
+A tag with a semver pre-release part, such as `v1.1.0-beta.1`, goes through the same workflow. The
+changelog section is `## [1.1.0-beta.1] - YYYY-MM-DD`; a stable section does not satisfy a beta tag
 and the other way round. The GitHub Release is marked as a pre-release. The go command prefers a
 stable version for `@latest`, but while no stable version exists, `@latest` resolves to the highest
 pre-release, so the first beta is what a plain `go get` installs until 0.1.0 ships.
