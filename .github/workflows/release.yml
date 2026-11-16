@@ -98,7 +98,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.27.1"
+          go-version: "1.27.4"
           cache: false
       - name: Core mutation gate
         run: go run ./tools/mutation-check -package=core -workers=4
@@ -116,12 +116,12 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.27.1"
+          go-version: "1.27.4"
           cache: false
       - name: API compatibility
         run: go run ./tools/api-check
       - name: pkg.go.dev preview
-        # The quality gates skip this test on any Go but 1.27.1, and setup-go "1.27" may resolve to a
+        # The quality gates skip this test on any Go but 1.27.4, and setup-go "1.27" may resolve to a
         # later patch, so this job is where docs/godoc is enforced. The variable turns the skip into
         # a failure if the pin ever drifts from the generator.
         env:
@@ -140,7 +140,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.27.1"
+          go-version: "1.27.4"
           cache: false
       - name: Fuzz every target
         run: go run ./tools/fuzz-check -time=3m -parallel=4
@@ -168,7 +168,7 @@ jobs:
           cache: false
       - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          version: v2.14.0
+          version: v2.15.0
 
   govulncheck:
     # The golang/govulncheck-action installs @latest, so the scanner is pinned here instead.

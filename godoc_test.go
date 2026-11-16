@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-const goDocVersion = "go1.27.1"
+const goDocVersion = "go1.27.4"
 
 // TestGoDocPreview compares the committed go doc output with the command output. It runs only on
 // the toolchain that generated the files, so a different Go version skips instead of producing a
