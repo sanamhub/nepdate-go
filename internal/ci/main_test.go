@@ -141,7 +141,7 @@ func TestGoDocReduced(t *testing.T) {
 	}{
 		{"go1.24.13", true},
 		{"go1.27.0", true},
-		{"go1.27.1", false},
+		{"go1.27.4", false},
 		{"go1.27.2", true},
 	} {
 		if got := goDocReduced(c.version); got != c.want {
@@ -215,7 +215,7 @@ func TestSummaryNamesSkippedGates(t *testing.T) {
 		{7, 9, []string{"golangci-lint", "govulncheck"}, nil, "ci: 7/9 gates passed, 2 skipped (golangci-lint, govulncheck)"},
 		{3, 9, []string{"golangci-lint"}, nil, "ci: 3/9 gates passed, 1 skipped (golangci-lint)"},
 		{9, 9, nil, race, "ci: 9/9 gates passed, 1 reduced (tests without -race)"},
-		{9, 9, nil, []string{"tests without -race", "pkg.go.dev preview (needs go1.27.1)"}, "ci: 9/9 gates passed, 2 reduced (tests without -race, pkg.go.dev preview (needs go1.27.1))"},
+		{9, 9, nil, []string{"tests without -race", "pkg.go.dev preview (needs go1.27.4)"}, "ci: 9/9 gates passed, 2 reduced (tests without -race, pkg.go.dev preview (needs go1.27.4))"},
 		{8, 9, []string{"govulncheck"}, race, "ci: 8/9 gates passed, 1 skipped (govulncheck), 1 reduced (tests without -race)"},
 	}
 	for _, c := range cases {

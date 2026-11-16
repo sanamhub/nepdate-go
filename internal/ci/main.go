@@ -25,7 +25,7 @@ import (
 const minCoverage = 90.0
 
 // goDocVersion is the toolchain that generated docs/godoc (ADR-0008 pin).
-const goDocVersion = "go1.27.1"
+const goDocVersion = "go1.27.4"
 
 type gate struct {
 	name string

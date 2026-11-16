@@ -125,7 +125,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.27.1"
+          go-version: "1.27.4"
           cache: false
       - name: Core mutation gate
         run: go run ./tools/mutation-check -package=core -workers=4
@@ -142,12 +142,12 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.27.1"
+          go-version: "1.27.4"
           cache: false
       - name: API compatibility
         run: go run ./tools/api-check
       - name: pkg.go.dev preview
-        # The quality gates skip this test on any Go but 1.27.1, and setup-go "1.27" may resolve to a
+        # The quality gates skip this test on any Go but 1.27.4, and setup-go "1.27" may resolve to a
         # later patch, so this job is where docs/godoc is enforced. The variable turns the skip into
         # a failure if the pin ever drifts from the generator.
         env:
