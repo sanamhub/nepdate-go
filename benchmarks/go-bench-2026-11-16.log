@@ -1,0 +1,5 @@
+idle gate (30 one-second samples): avg=9.2 max=12.2
+during the run (one-second samples, total and all CPUs except CPU 2):
+n=42 total avg=16.2 peak=22.6 | other-cpus avg=10.6 peak=17.0
+samples file: go-bench-2026-11-16-cpu-samples.txt
+exit: 0
