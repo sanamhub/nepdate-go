@@ -32,7 +32,7 @@ Go 1.24 or later. CI runs the tests on Go 1.24.13 and the full gates on Go 1.26 
 ## Install
 
 ```
-go get github.com/sanamhub/nepdate-go@v1.0.0-rc.1
+go get github.com/sanamhub/nepdate-go@v1.0.0
 ```
 
 ```go
