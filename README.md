@@ -170,7 +170,7 @@ fmt.Println(d.IsZero(), errors.Is(err, nepdate.ErrOutOfRange))
 |---|---|
 | Guides and examples | [nepdate.com/docs/go](https://nepdate.com/docs/go/) |
 | Every exported identifier | [docs/API.md](https://github.com/sanamhub/nepdate-go/blob/main/docs/API.md) |
-| Speed and allocations, with the C# baseline | [docs/benchmarks.md](https://github.com/sanamhub/nepdate-go/blob/main/docs/benchmarks.md) |
+| Speed and allocations | [docs/benchmarks.md](https://github.com/sanamhub/nepdate-go/blob/main/docs/benchmarks.md) |
 | What changed in each version | [CHANGELOG.md](https://github.com/sanamhub/nepdate-go/blob/main/CHANGELOG.md) |
 | Building, gates and pull requests | [CONTRIBUTING.md](https://github.com/sanamhub/nepdate-go/blob/main/CONTRIBUTING.md) |
 | Reporting a vulnerability | [SECURITY.md](https://github.com/sanamhub/nepdate-go/blob/main/SECURITY.md) |
